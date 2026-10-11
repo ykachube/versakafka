@@ -5,6 +5,7 @@ use std::sync::Arc;
 use tokio::sync::Semaphore;
 use super::config::BackpressureConfig;
 
+#[derive(Clone)]
 pub struct Backpressure {
     permits: Arc<Semaphore>,
     config: BackpressureConfig,

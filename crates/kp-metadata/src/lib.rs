@@ -4,6 +4,8 @@ pub mod rewrite;
 pub mod routing;
 pub mod config;
 
+pub use rewrite::MetadataRewriter;
+
 use thiserror::Error;
 use kp_protocol::ProtocolError;
 

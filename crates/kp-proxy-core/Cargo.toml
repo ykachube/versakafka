@@ -14,6 +14,7 @@ bytes = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 kp-protocol = { path = "../kp-protocol" }
+kp-metadata = { path = "../kp-metadata" }
 kp-telemetry = { path = "../kp-telemetry" }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
@@ -25,6 +26,8 @@ parking_lot = { workspace = true }
 arc-swap = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+futures-util = { workspace = true }
+kafka-protocol = { workspace = true }
 
 [dev-dependencies]
 kp-testkit = { path = "../kp-testkit" }

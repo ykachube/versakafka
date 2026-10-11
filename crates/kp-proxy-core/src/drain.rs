@@ -50,4 +50,12 @@ impl DrainManager {
     pub fn decrement_in_flight(&self) {
         self.state.write().in_flight = self.state.read().in_flight.saturating_sub(1);
     }
+    
+    pub fn is_draining(&self) -> bool {
+        self.state.read().draining
+    }
+    
+    pub fn in_flight_count(&self) -> usize {
+        self.state.read().in_flight
+    }
 }

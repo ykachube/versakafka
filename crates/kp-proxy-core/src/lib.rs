@@ -10,6 +10,8 @@ pub mod config;
 
 use thiserror::Error;
 use anyhow::Error as AnyError;
+use kp_protocol::ProtocolError;
+use kp_metadata::MetadataError;
 
 #[derive(Debug, Error)]
 pub enum ProxyCoreError {
@@ -27,6 +29,10 @@ pub enum ProxyCoreError {
     Io(#[from] std::io::Error),
     #[error("config error: {0}")]
     Config(#[from] AnyError),
+    #[error("protocol error: {0}")]
+    Protocol(#[from] ProtocolError),
+    #[error("metadata error: {0}")]
+    Metadata(#[from] MetadataError),
 }
 
 pub type Result<T> = std::result::Result<T, ProxyCoreError>;

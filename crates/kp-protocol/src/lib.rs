@@ -5,6 +5,7 @@ pub mod api_versions;
 pub mod frame;
 pub mod golden;
 pub mod config;
+pub mod handler;
 
 use thiserror::Error;
 use kafka_protocol::protocol::{Decodable, Encodable};
