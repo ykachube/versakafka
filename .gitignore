@@ -33,3 +33,40 @@ docker-compose.override.yml
 *.profraw
 *.profdata
 coverage/
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.pdb
+target2/
+
+# Test output
+test-results/
+*.junit.xml
+
+# Cargo
+.cargo/registry/
+.cargo/git/
+
+# Rust analyzer
+rust-analyzer/
+
+# WASM
+*.wasm
+
+# MinIO
+minio-data/
+
+# Prometheus
+prometheus-data/
+
+# Grafana
+grafana-data/
+
+# Jaeger
+jaeger-data/
+
+# Kafka
+kafka-*-data/
