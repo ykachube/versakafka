@@ -1,5 +1,0 @@
-D:\PROJECTS\versakafka\target2\debug\deps\pin_project_lite-e36c79e4ddc8ad2d.d: C:\Users\xwm\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pin-project-lite-0.2.17\src\lib.rs
-
-D:\PROJECTS\versakafka\target2\debug\deps\libpin_project_lite-e36c79e4ddc8ad2d.rmeta: C:\Users\xwm\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pin-project-lite-0.2.17\src\lib.rs
-
-C:\Users\xwm\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pin-project-lite-0.2.17\src\lib.rs:
