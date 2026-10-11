@@ -1,0 +1,46 @@
+# Cargo configuration for Resilient Kafka Proxy
+
+[build]
+# Enable parallel compilation (0 = auto-detect)
+# jobs = 0
+
+[target.x86_64-unknown-linux-gnu]
+# Linker for faster linking
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+[profile.dev]
+# Faster incremental builds
+incremental = true
+debug = true
+opt-level = 0
+
+[profile.release]
+# Optimized release builds
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
+opt-level = 3
+
+[profile.bench]
+# Benchmark profile
+lto = "thin"
+codegen-units = 1
+debug = false
+opt-level = 3
+
+[profile.test]
+# Test profile
+debug = true
+opt-level = 1
+
+# Target-specific settings for cross-compilation
+[target.x86_64-pc-windows-msvc]
+# Windows-specific settings
+
+[alias]
+# Convenience aliases
+check-all = "check --workspace --all-targets"
+test-all = "test --workspace"
+build-all = "build --workspace --release"

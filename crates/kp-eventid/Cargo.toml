@@ -1,0 +1,29 @@
+[package]
+name = "kp-eventid"
+version = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+kp-protocol = { path = "../kp-protocol" }
+kafka-protocol = { workspace = true }
+bytes = { workspace = true }
+uuid = { workspace = true }
+sha2 = { workspace = true }
+hmac = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+config = { workspace = true }
+figment = { workspace = true }
+dashmap = { workspace = true }
+parking_lot = { workspace = true }
+chrono = { workspace = true }
+
+[dev-dependencies]
+kp-testkit = { path = "../kp-testkit" }
+proptest = { workspace = true }
+insta = { workspace = true }

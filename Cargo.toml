@@ -1,0 +1,113 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/kp-testkit",
+    "crates/kp-protocol",
+    "crates/kp-proxy-core",
+    "crates/kp-metadata",
+    "crates/kp-telemetry",
+    "crates/kp-filters",
+    "crates/kp-wasm",
+    "crates/kp-eventid",
+    "crates/kp-breaker",
+    "crates/kp-channel",
+    "crates/kp-wal",
+    "crates/kp-spill",
+    "crates/kp-reconciler",
+    "crates/kp-crypto",
+    "crates/kp-bin",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+rust-version = "1.80"
+
+[workspace.dependencies]
+tokio = { version = "1.40", features = ["full"] }
+kafka-protocol = "0.18"
+rustls = "0.23"
+rustls-pemfile = "2.0"
+aws-config = "1.0"
+aws-sdk-s3 = "1.0"
+object_store = { version = "0.11", features = ["aws"] }
+wasmtime = "24.0"
+opentelemetry = { version = "0.33", features = ["metrics", "trace"] }
+opentelemetry-prometheus = "0.29"
+opentelemetry-otlp = { version = "0.33", features = ["http"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+anyhow = "1.0"
+bytes = "1.6"
+uuid = { version = "1.8", features = ["v7", "serde", "fast-rng"] }
+sha2 = "0.10"
+hmac = "0.12"
+parking_lot = "0.12"
+arc-swap = "1.6"
+dashmap = "5.5"
+governor = "0.6"
+config = "0.14"
+figment = { version = "0.10", features = ["toml", "env"] }
+clap = { version = "4.5", features = ["derive", "env"] }
+tokio-util = { version = "0.7", features = ["codec"] }
+futures = "0.3"
+pin-project = "1.1"
+tower = "0.4"
+tower-service = "0.3"
+hyper = { version = "1.2", features = ["full"] }
+tonic = { version = "0.12", features = ["tls", "transport"] }
+prost = "0.12"
+prost-types = "0.12"
+testcontainers = { version = "0.19" }
+# toxiproxy = "0.3"
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
+insta = { version = "1.38", features = ["json", "csv"] }
+loom = { version = "0.7" }
+turmoil = { version = "0.4" }
+rand = { version = "0.8", features = ["std"] }
+async-trait = { version = "0.1", workspace = true }
+tempfile = { version = "3.10", workspace = true }
+pathdiff = { version = "0.2", workspace = true }
+crc32fast = { version = "1.4", workspace = true }
+aws-sdk-kms = { version = "1.0", workspace = true }
+aes-gcm = { version = "0.10", workspace = true }
+chrono = { version = "0.4", features = ["serde"], workspace = true }
+
+[workspace.lints.rust]
+unused_crate_dependencies = "warn"
+unused_imports = "warn"
+unused_variables = "warn"
+dead_code = "warn"
+unreachable_code = "warn"
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+cargo = "warn"
+unwrap_used = "allow"
+expect_used = "allow"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+opt-level = 3
+
+[profile.dev]
+debug = true
+opt-level = 0
+
+[profile.test]
+debug = true
+opt-level = 1

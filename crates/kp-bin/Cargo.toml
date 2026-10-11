@@ -1,0 +1,38 @@
+[package]
+name = "kp-bin"
+version = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+rust-version = { workspace = true }
+
+[[bin]]
+name = "kp-proxy"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+rustls = { workspace = true }
+kp-proxy-core = { path = "../kp-proxy-core" }
+kp-metadata = { path = "../kp-metadata" }
+kp-telemetry = { path = "../kp-telemetry" }
+kp-filters = { path = "../kp-filters" }
+kp-wasm = { path = "../kp-wasm" }
+kp-eventid = { path = "../kp-eventid" }
+kp-breaker = { path = "../kp-breaker" }
+kp-channel = { path = "../kp-channel" }
+kp-wal = { path = "../kp-wal" }
+kp-spill = { path = "../kp-spill" }
+kp-reconciler = { path = "../kp-reconciler" }
+kp-crypto = { path = "../kp-crypto" }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { workspace = true }
+config = { workspace = true }
+figment = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+kp-testkit = { path = "../kp-testkit" }
