@@ -168,6 +168,27 @@ cmd1; if ($?) { cmd2 }
 
 # Quote paths with spaces
 & "path with spaces\script.ps1"
+
+# IMPORTANT: PowerShell 5.1 does NOT support && or || operators
+# Use ; for sequential execution instead of &&
+# Use cmd1; if ($?) { cmd2 } instead of cmd1 && cmd2
+# Use cmd1; if (-not $?) { cmd2 } instead of cmd1 || cmd2
+```
+
+## Build Environment Notes (CRITICAL)
+- **PowerShell 5.1 cannot run cargo build commands directly** - build scripts fail with "Access denied" (os error 5) on the target directory
+- **Use Git Bash instead** (`C:\Program Files\Git\bin\bash.exe`) for all cargo commands
+- **Set CARGO_TARGET_DIR to a temp path** (e.g., `/tmp/versakafka_target`) to avoid Windows permission issues
+- **Add cargo to PATH** in the script: `export PATH="$PATH:/c/Users/xwm/.cargo/bin"`
+
+Example working build script:
+```bash
+#!/bin/bash
+cd /d/PROJECTS/versakafka
+export PATH="$PATH:/c/Users/xwm/.cargo/bin"
+export CARGO_TARGET_DIR="/tmp/versakafka_target"
+mkdir -p "$CARGO_TARGET_DIR"
+cargo check --workspace 2>&1
 ```
 
 ## Rust Toolchain

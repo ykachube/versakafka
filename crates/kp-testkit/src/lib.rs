@@ -22,6 +22,10 @@ pub enum TestKitError {
     FakeBroker(String),
     #[error("cluster fixture error: {0}")]
     ClusterFixture(String),
+    #[error("fake arc error: {0}")]
+    FakeArc(String),
+    #[error("fake s3 error: {0}")]
+    FakeS3(String),
     #[error("ledger error: {0}")]
     Ledger(String),
     #[error("checker error: {0}")]

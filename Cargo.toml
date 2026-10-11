@@ -66,6 +66,7 @@ prost = "0.12"
 prost-types = "0.12"
 testcontainers = { version = "0.19" }
 # toxiproxy = "0.3"
+tokio-stream = "0.1"
 criterion = { version = "0.5", features = ["html_reports"] }
 proptest = "1.4"
 insta = { version = "1.38", features = ["json", "csv"] }
