@@ -19,6 +19,8 @@ parking_lot = { workspace = true }
 arc-swap = { workspace = true }
 config = { workspace = true }
 figment = { workspace = true }
+uuid = { workspace = true }
+async-trait = { workspace = true }
 
 [dev-dependencies]
 kp-testkit = { path = "../kp-testkit" }

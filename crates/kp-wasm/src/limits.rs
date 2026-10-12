@@ -3,11 +3,23 @@
 use crate::WasmError;
 use wasmtime::ResourceLimiter;
 use std::time::Duration;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 pub struct WasmLimiter {
     max_memory: usize,
     max_instructions: u64,
-    fuel_consumed: std::sync::atomic::AtomicU64,
+    fuel_consumed: Arc<AtomicU64>,
+}
+
+impl Clone for WasmLimiter {
+    fn clone(&self) -> Self {
+        Self {
+            max_memory: self.max_memory,
+            max_instructions: self.max_instructions,
+            fuel_consumed: self.fuel_consumed.clone(),
+        }
+    }
 }
 
 impl WasmLimiter {
@@ -15,7 +27,7 @@ impl WasmLimiter {
         Self {
             max_memory: max_memory_mb * 1024 * 1024,
             max_instructions,
-            fuel_consumed: std::sync::atomic::AtomicU64::new(0),
+            fuel_consumed: Arc::new(AtomicU64::new(0)),
         }
     }
 }

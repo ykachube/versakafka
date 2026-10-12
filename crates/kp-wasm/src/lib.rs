@@ -6,6 +6,11 @@ pub mod limits;
 pub mod sdk;
 pub mod config;
 
+pub use host::WasmHost;
+pub use abi::{AbiVersion, PluginManifest};
+pub use config::{WasmConfig, WasmLimits};
+pub use sdk::{PluginInput, PluginRecord, PluginOutput};
+
 use thiserror::Error;
 
 #[derive(Debug, Error)]

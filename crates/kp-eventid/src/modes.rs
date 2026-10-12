@@ -1,9 +1,8 @@
 //! Event ID modes
 
-use crate::{EventIdError, Result, EventIdMode};
+use crate::{EventIdError, Result, EventIdMode, hmac};
 use uuid::Uuid;
 use sha2::{Sha256, Digest};
-use hmac::{Hmac, Mac};
 use super::config::EventIdConfig;
 
 pub struct EventIdGenerator {
@@ -18,19 +17,40 @@ impl EventIdGenerator {
     pub fn generate(&self, topic: &str, partition: i32, record: &EventRecord) -> Result<Vec<u8>> {
         let mode = self.get_mode(topic);
         
-        match mode {
+        let event_id = match mode {
             EventIdMode::Preserve => {
                 // Check for existing event-id header
                 if let Some(eid) = record.headers.iter().find(|(k, _)| k == "event-id") {
-                    return Ok(eid.1.clone());
+                    eid.1.clone()
+                } else {
+                    self.generate_uuidv7()?
                 }
-                // Fall through to generate
-                self.generate_uuidv7()
             }
-            EventIdMode::GenerateUuidv7 => self.generate_uuidv7(),
-            EventIdMode::Deterministic => self.generate_deterministic(topic, partition, record),
-            EventIdMode::ContentHash => self.generate_content_hash(record),
-            EventIdMode::RejectDuplicate => self.generate_uuidv7(), // Will be checked separately
+            EventIdMode::GenerateUuidv7 => self.generate_uuidv7()?,
+            EventIdMode::Deterministic => self.generate_deterministic(topic, partition, record)?,
+            EventIdMode::ContentHash => self.generate_content_hash(record)?,
+            EventIdMode::RejectDuplicate => self.generate_uuidv7()?, // Will be checked separately
+        };
+        
+        // Add HMAC if enabled
+        let final_id = if self.config.hmac_enabled {
+            if let Some(key) = &self.config.hmac_key {
+                hmac::compute_hmac(key.as_bytes(), &event_id)?
+            } else {
+                event_id
+            }
+        } else {
+            event_id
+        };
+        
+        Ok(final_id)
+    }
+    
+    pub fn verify_hmac(&self, event_id: &[u8], expected_hmac: &[u8]) -> Result<bool> {
+        if let Some(key) = &self.config.hmac_key {
+            hmac::verify_hmac(key.as_bytes(), event_id, expected_hmac)
+        } else {
+            Ok(true)
         }
     }
 

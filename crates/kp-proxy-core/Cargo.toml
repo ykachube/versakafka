@@ -16,6 +16,9 @@ tracing-subscriber = { workspace = true }
 kp-protocol = { path = "../kp-protocol" }
 kp-metadata = { path = "../kp-metadata" }
 kp-telemetry = { path = "../kp-telemetry" }
+kp-filters = { path = "../kp-filters" }
+kp-wasm = { path = "../kp-wasm" }
+kp-eventid = { path = "../kp-eventid" }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 config = { workspace = true }

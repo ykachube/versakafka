@@ -5,6 +5,11 @@ pub mod headers;
 pub mod hmac;
 pub mod config;
 
+pub use modes::{EventIdGenerator, EventRecord};
+pub use headers::add_event_id_headers;
+pub use hmac::{compute_hmac, verify_hmac};
+pub use config::{EventIdConfig, EventIdHeaders};
+
 use thiserror::Error;
 use anyhow::Error as AnyError;
 
