@@ -36,3 +36,9 @@ impl Default for BreakerState {
         Self::Closed
     }
 }
+
+// Re-exports
+pub use local::LocalBreaker;
+pub use arc::ArcClient;
+pub use composition::BreakerManager;
+pub use config::{BreakerConfig, LocalBreakerConfig, ArcConfig, BreakerComposition};

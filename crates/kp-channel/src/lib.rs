@@ -33,3 +33,7 @@ pub type Result<T> = std::result::Result<T, ChannelError>;
 
 // Re-export from trait_channel
 pub use trait_channel::{Channel, ChannelType, AckPolicy, ChannelBatch, ChannelRecord, SendResult, HealthStatus};
+pub use policies::AckPolicyEngine;
+pub use fanout::FanoutEngine;
+pub use kafka_channel::KafkaChannel;
+pub use config::{ChannelConfig, ChannelType as ConfigChannelType, KafkaChannelConfig};

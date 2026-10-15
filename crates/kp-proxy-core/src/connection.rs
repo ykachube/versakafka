@@ -1,6 +1,6 @@
 //! Connection handling
 
-use crate::{ProxyCoreError, Result};
+use crate::{ProxyCoreError, Result, produce::ProduceHandler};
 use tokio::net::TcpStream;
 use tokio_util::codec::Framed;
 use bytes::{BytesMut};
@@ -15,12 +15,17 @@ use kp_protocol::{
 };
 use kp_metadata::MetadataRewriter;
 use kafka_protocol::messages::*;
+use kp_filters::FilterChain;
+use kp_eventid::EventIdGenerator;
+use kp_breaker::BreakerManager;
+use kp_channel::{AckPolicyEngine, Channel};
 
 pub struct Connection {
     stream: Framed<TcpStream, crate::framing::KafkaFrameCodec>,
     config: Arc<super::config::ProxyConfig>,
     metadata_rewriter: Arc<MetadataRewriter>,
-    backpressure: crate::backpressure::Backpressure,
+    backpressure: Arc<crate::backpressure::Backpressure>,
+    produce_handler: Arc<ProduceHandler>,
 }
 
 impl Connection {
@@ -28,13 +33,26 @@ impl Connection {
         stream: TcpStream, 
         config: Arc<super::config::ProxyConfig>,
         metadata_rewriter: Arc<MetadataRewriter>,
-        backpressure: crate::backpressure::Backpressure,
+        backpressure: Arc<crate::backpressure::Backpressure>,
+        filter_chain: Arc<FilterChain>,
+        event_id_generator: Arc<EventIdGenerator>,
+        breaker_manager: Arc<BreakerManager>,
+        ack_policy_engine: Option<AckPolicyEngine>,
     ) -> Self {
+        let produce_handler = Arc::new(ProduceHandler::new(
+            filter_chain,
+            event_id_generator,
+            breaker_manager,
+            ack_policy_engine,
+            metadata_rewriter.clone(),
+        ));
+        
         Self {
             stream: Framed::new(stream, crate::framing::KafkaFrameCodec),
             config,
             metadata_rewriter,
             backpressure,
+            produce_handler,
         }
     }
 
@@ -213,17 +231,7 @@ async fn handle_find_coordinator(
         correlation_id: i32,
         payload: &[u8],
     ) -> Result<Vec<u8>> {
-        let mut response = ProduceResponse::default();
-        response.throttle_time_ms = 0;
-        
-        let response_payload = encode_produce_response(&response, api_version)
-            .map_err(|e| ProxyCoreError::Protocol(e))?;
-        
-        let mut final_buf = BytesMut::new();
-        encode_response_header(&mut final_buf, correlation_id);
-        final_buf.extend_from_slice(&response_payload);
-        
-        Ok(final_buf.freeze().to_vec())
+        self.produce_handler.handle_produce(api_version, correlation_id, payload).await
     }
 
     async fn handle_fetch(

@@ -6,7 +6,8 @@ pub mod builtin;
 pub mod config;
 
 pub use chain::{FilterChain, FilterStage, FilterBatch, FilterRecord, FilterHooks};
-pub use hooks::{PreReceiveHook, PostReceiveHook, PreSendHook, PostSendHook, SendResult, FilterContext};
+pub use hooks::{PreReceiveHook, PostReceiveHook, PreSendHook, PostSendHook, SendResult, FilterContext, WasmHost, WasmPluginInput, WasmPluginRecord, WasmPluginOutput};
+pub use config::{FiltersConfig, FilterStageConfig, TopicFilterConfig};
 
 use thiserror::Error;
 use kp_protocol::ProtocolError;

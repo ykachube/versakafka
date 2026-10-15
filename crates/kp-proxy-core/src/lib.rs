@@ -7,11 +7,16 @@ pub mod backpressure;
 pub mod drain;
 pub mod server;
 pub mod config;
+pub mod produce;
+pub mod breaker;
 
 use thiserror::Error;
 use anyhow::Error as AnyError;
 use kp_protocol::ProtocolError;
 use kp_metadata::MetadataError;
+use kp_breaker::BreakerError;
+use kp_channel::ChannelError;
+use kp_filters::FilterError;
 
 #[derive(Debug, Error)]
 pub enum ProxyCoreError {
@@ -33,6 +38,12 @@ pub enum ProxyCoreError {
     Protocol(#[from] ProtocolError),
     #[error("metadata error: {0}")]
     Metadata(#[from] MetadataError),
+    #[error("breaker error: {0}")]
+    Breaker(#[from] BreakerError),
+    #[error("channel error: {0}")]
+    Channel(#[from] ChannelError),
+    #[error("filter error: {0}")]
+    Filter(#[from] FilterError),
 }
 
 pub type Result<T> = std::result::Result<T, ProxyCoreError>;

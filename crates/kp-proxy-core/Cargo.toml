@@ -19,6 +19,8 @@ kp-telemetry = { path = "../kp-telemetry" }
 kp-filters = { path = "../kp-filters" }
 kp-wasm = { path = "../kp-wasm" }
 kp-eventid = { path = "../kp-eventid" }
+kp-breaker = { path = "../kp-breaker" }
+kp-channel = { path = "../kp-channel" }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 config = { workspace = true }

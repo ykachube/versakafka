@@ -3,6 +3,7 @@
 use crate::{ChannelError, Result, trait_channel::{AckPolicy, Channel, ChannelBatch, SendResult}};
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct AckPolicyEngine {
     channels: Vec<Arc<dyn Channel>>,
 }
