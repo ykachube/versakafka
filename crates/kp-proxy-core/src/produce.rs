@@ -1,12 +1,13 @@
-//! Produce request handling with filters, event IDs, breaker, and channels
+//! Produce request handling with filters, event IDs, breaker, channels, and crypto
 
-use crate::{ProxyCoreError, Result};
+use crate::{ProxyCoreError, Result, crypto::CryptoIntegration};
 use kp_protocol::{handler::*, ProtocolError};
 use kp_metadata::MetadataRewriter;
 use kp_filters::{FilterChain, FilterBatch, FilterRecord};
 use kp_eventid::EventIdGenerator;
 use kp_breaker::BreakerManager;
 use kp_channel::{ChannelBatch, ChannelRecord, AckPolicyEngine};
+use kp_crypto::pipeline::EncryptedRecord;
 use kafka_protocol::messages::*;
 use kafka_protocol::messages::produce_response::{TopicProduceResponse, PartitionProduceResponse};
 use kafka_protocol::protocol::StrBytes;
@@ -20,6 +21,7 @@ pub struct ProduceHandler {
     breaker_manager: Arc<BreakerManager>,
     ack_policy_engine: Option<AckPolicyEngine>,
     metadata_rewriter: Arc<MetadataRewriter>,
+    crypto: Arc<CryptoIntegration>,
 }
 
 impl ProduceHandler {
@@ -29,6 +31,7 @@ impl ProduceHandler {
         breaker_manager: Arc<BreakerManager>,
         ack_policy_engine: Option<AckPolicyEngine>,
         metadata_rewriter: Arc<MetadataRewriter>,
+        crypto: Arc<CryptoIntegration>,
     ) -> Self {
         Self {
             filter_chain,
@@ -36,6 +39,7 @@ impl ProduceHandler {
             breaker_manager,
             ack_policy_engine,
             metadata_rewriter,
+            crypto,
         }
     }
 
@@ -69,6 +73,24 @@ impl ProduceHandler {
 
         // Run filter chain
         filter_batch = self.filter_chain.process_batch(filter_batch)?;
+
+        // Encrypt records if crypto is enabled
+        if self.crypto.is_enabled() {
+            let mut encrypted_records = Vec::new();
+            for record in &filter_batch.records {
+                let encrypted = self.crypto.encrypt(&record.value).await?;
+                encrypted_records.push(encrypted);
+            }
+            // Replace records with encrypted versions
+            filter_batch.records = encrypted_records.into_iter().map(|e| FilterRecord {
+                key: e.ciphertext.is_empty().then_some(Vec::new()), // placeholder
+                value: e.ciphertext,
+                headers: e.headers,
+                timestamp: 0, // would be set from original
+                offset: -1,
+                event_id: None,
+            }).collect();
+        }
 
         // Pre-send hooks
         self.filter_chain.pre_send(&mut filter_batch)?;

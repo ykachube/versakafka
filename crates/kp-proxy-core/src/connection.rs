@@ -1,6 +1,6 @@
 //! Connection handling
 
-use crate::{ProxyCoreError, Result, produce::ProduceHandler};
+use crate::{ProxyCoreError, Result, produce::ProduceHandler, crypto::CryptoIntegration};
 use tokio::net::TcpStream;
 use tokio_util::codec::Framed;
 use bytes::{BytesMut};
@@ -38,6 +38,7 @@ impl Connection {
         event_id_generator: Arc<EventIdGenerator>,
         breaker_manager: Arc<BreakerManager>,
         ack_policy_engine: Option<AckPolicyEngine>,
+        crypto: Arc<CryptoIntegration>,
     ) -> Self {
         let produce_handler = Arc::new(ProduceHandler::new(
             filter_chain,
@@ -45,6 +46,7 @@ impl Connection {
             breaker_manager,
             ack_policy_engine,
             metadata_rewriter.clone(),
+            crypto,
         ));
         
         Self {

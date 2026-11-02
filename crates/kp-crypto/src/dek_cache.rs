@@ -60,4 +60,9 @@ impl DekCache {
     pub fn invalidate(&self, key_id: &str) {
         self.cache.write().remove(key_id);
     }
+    
+    pub fn get_encrypted_dek(&self, key_id: &str) -> Option<Vec<u8>> {
+        let cache = self.cache.read();
+        cache.get(key_id).map(|cached| cached.ciphertext.clone())
+    }
 }

@@ -1,6 +1,6 @@
 //! Proxy server
 
-use crate::{ProxyCoreError, Result, connection::Connection, framing::KafkaFrameCodec, drain::DrainManager, backpressure::Backpressure, breaker::BreakerIntegration};
+use crate::{ProxyCoreError, Result, connection::Connection, framing::KafkaFrameCodec, drain::DrainManager, backpressure::Backpressure, breaker::BreakerIntegration, crypto::CryptoIntegration};
 use super::config::ProxyConfig;
 use tokio::net::TcpListener;
 use tokio_util::codec::Framed;
@@ -12,6 +12,7 @@ use kp_filters::{FilterChain, FiltersConfig};
 use kp_eventid::{EventIdGenerator, EventIdConfig};
 use kp_breaker::BreakerConfig;
 use kp_channel::{AckPolicyEngine, Channel, KafkaChannel, ChannelConfig, KafkaChannelConfig, AckPolicy};
+use kp_crypto::config::CryptoConfig;
 use std::time::Duration;
 use std::collections::HashMap;
 
@@ -53,6 +54,10 @@ pub async fn run_server(config: ProxyConfig) -> Result<()> {
     let kafka_channel = Arc::new(KafkaChannel::new(channel_config, kafka_config));
     let ack_policy_engine = Some(AckPolicyEngine::new(vec![kafka_channel]));
     
+    // Initialize crypto
+    let crypto_config = CryptoConfig::default();
+    let crypto_integration = Arc::new(CryptoIntegration::new(crypto_config).await?);
+    
     let listener = TcpListener::bind(&config.listen_addr).await
         .map_err(|e| ProxyCoreError::Io(e))?;
     
@@ -64,6 +69,7 @@ pub async fn run_server(config: ProxyConfig) -> Result<()> {
     let event_id_generator = event_id_generator;
     let breaker_manager = breaker_manager;
     let ack_policy_engine = ack_policy_engine;
+    let crypto_integration = crypto_integration;
     
     // Handle shutdown signals
     let drain_clone = drain.clone();
@@ -109,13 +115,14 @@ pub async fn run_server(config: ProxyConfig) -> Result<()> {
         let event_id_generator = event_id_generator.clone();
         let breaker_manager = breaker_manager.clone();
         let ack_policy_engine = ack_policy_engine.clone();
+        let crypto_integration = crypto_integration.clone();
         
         drain.increment_in_flight();
         
         tokio::spawn(async move {
             let mut connection = Connection::new(
                 stream, config, metadata_rewriter, backpressure,
-                filter_chain, event_id_generator, breaker_manager, ack_policy_engine
+                filter_chain, event_id_generator, breaker_manager, ack_policy_engine, crypto_integration
             );
             let _ = connection.handle().await;
             drain.decrement_in_flight();

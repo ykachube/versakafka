@@ -24,6 +24,7 @@ kp-channel = { path = "../kp-channel" }
 kp-wal = { path = "../kp-wal" }
 kp-spill = { path = "../kp-spill" }
 kp-reconciler = { path = "../kp-reconciler" }
+kp-crypto = { path = "../kp-crypto" }
 object_store = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }

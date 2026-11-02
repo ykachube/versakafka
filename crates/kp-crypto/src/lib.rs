@@ -5,6 +5,7 @@ pub mod kms;
 pub mod dek_cache;
 pub mod headers;
 pub mod config;
+pub mod pipeline;
 
 use thiserror::Error;
 use kp_protocol::ProtocolError;
@@ -20,6 +21,8 @@ pub enum CryptoError {
     DekCache(String),
     #[error("header error: {0}")]
     Header(String),
+    #[error("pipeline error: {0}")]
+    Pipeline(String),
     #[error("protocol error: {0}")]
     Protocol(#[from] ProtocolError),
     #[error("config error: {0}")]
@@ -27,3 +30,7 @@ pub enum CryptoError {
 }
 
 pub type Result<T> = std::result::Result<T, CryptoError>;
+
+// Re-exports
+pub use config::{CryptoConfig, KmsConfig, DekConfig, DekAlgorithm, CryptoHeaders};
+pub use pipeline::{CryptoPipeline, EncryptedRecord};

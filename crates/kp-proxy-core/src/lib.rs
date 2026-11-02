@@ -12,6 +12,7 @@ pub mod breaker;
 pub mod wal;
 pub mod spill;
 pub mod reconcile;
+pub mod crypto;
 
 use thiserror::Error;
 use anyhow::Error as AnyError;
@@ -23,6 +24,7 @@ use kp_filters::FilterError;
 use kp_wal::WalError;
 use kp_spill::SpillError;
 use kp_reconciler::ReconcilerError;
+use kp_crypto::CryptoError;
 
 #[derive(Debug, Error)]
 pub enum ProxyCoreError {
@@ -56,6 +58,8 @@ pub enum ProxyCoreError {
     Spill(#[from] SpillError),
     #[error("reconciler error: {0}")]
     Reconciler(#[from] ReconcilerError),
+    #[error("crypto error: {0}")]
+    Crypto(#[from] CryptoError),
 }
 
 pub type Result<T> = std::result::Result<T, ProxyCoreError>;
