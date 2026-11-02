@@ -30,6 +30,15 @@ pub enum SpillError {
     Config(#[from] AnyError),
     #[error("json error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
 }
 
 pub type Result<T> = std::result::Result<T, SpillError>;
+
+// Re-exports
+pub use uploader::Uploader;
+pub use manifest::{Manifest, ManifestSegment, ManifestManager};
+pub use replayer::Replayer;
+pub use channel::SpillChannel;
+pub use config::{SpillConfig, UploadConfig, ManifestConfig, ManifestFormat, RetentionConfig, S3Credentials};

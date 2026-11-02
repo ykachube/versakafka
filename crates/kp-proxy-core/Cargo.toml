@@ -21,6 +21,10 @@ kp-wasm = { path = "../kp-wasm" }
 kp-eventid = { path = "../kp-eventid" }
 kp-breaker = { path = "../kp-breaker" }
 kp-channel = { path = "../kp-channel" }
+kp-wal = { path = "../kp-wal" }
+kp-spill = { path = "../kp-spill" }
+kp-reconciler = { path = "../kp-reconciler" }
+object_store = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 config = { workspace = true }

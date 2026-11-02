@@ -9,6 +9,9 @@ pub mod server;
 pub mod config;
 pub mod produce;
 pub mod breaker;
+pub mod wal;
+pub mod spill;
+pub mod reconcile;
 
 use thiserror::Error;
 use anyhow::Error as AnyError;
@@ -17,6 +20,9 @@ use kp_metadata::MetadataError;
 use kp_breaker::BreakerError;
 use kp_channel::ChannelError;
 use kp_filters::FilterError;
+use kp_wal::WalError;
+use kp_spill::SpillError;
+use kp_reconciler::ReconcilerError;
 
 #[derive(Debug, Error)]
 pub enum ProxyCoreError {
@@ -44,6 +50,12 @@ pub enum ProxyCoreError {
     Channel(#[from] ChannelError),
     #[error("filter error: {0}")]
     Filter(#[from] FilterError),
+    #[error("wal error: {0}")]
+    Wal(#[from] WalError),
+    #[error("spill error: {0}")]
+    Spill(#[from] SpillError),
+    #[error("reconciler error: {0}")]
+    Reconciler(#[from] ReconcilerError),
 }
 
 pub type Result<T> = std::result::Result<T, ProxyCoreError>;

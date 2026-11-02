@@ -44,35 +44,55 @@ impl ManifestManager {
             current_manifest: None,
         }
     }
-
-    pub fn add_segment(&mut self, segment: ManifestSegment) {
+    
+    pub fn start_new_manifest(&mut self) {
+        self.current_manifest = Some(Manifest {
+            version: 1,
+            created_at: Utc::now(),
+            segments: Vec::new(),
+            index: HashMap::new(),
+        });
+    }
+    
+    pub fn add_segment(&mut self, segment: ManifestSegment) -> Result<()> {
         if self.current_manifest.is_none() {
-            self.current_manifest = Some(Manifest {
-                version: 1,
-                created_at: Utc::now(),
-                segments: Vec::new(),
-                index: HashMap::new(),
-            });
+            self.start_new_manifest();
         }
         
         if let Some(manifest) = &mut self.current_manifest {
+            // Update index
+            for i in 0..segment.record_count {
+                let key = format!("{}-{}", segment.path, i);
+                manifest.index.insert(key, SegmentIndex {
+                    segment_path: segment.path.clone(),
+                    offset: i,
+                    length: segment.size / segment.record_count.max(1),
+                });
+            }
             manifest.segments.push(segment);
+            Ok(())
+        } else {
+            Err(SpillError::Manifest("No active manifest".to_string()))
         }
     }
-
+    
+    pub fn get_current_manifest(&self) -> Option<&Manifest> {
+        self.current_manifest.as_ref()
+    }
+    
     pub async fn persist(&self, uploader: &super::uploader::Uploader) -> Result<()> {
         if let Some(manifest) = &self.current_manifest {
-            let data = match self.config.manifest.format {
-                ManifestFormat::Json => serde_json::to_vec_pretty(manifest)?,
-                ManifestFormat::Parquet => {
-                    // TODO: Implement parquet serialization
-                    return Err(SpillError::Manifest("Parquet format not implemented".to_string()));
-                }
-            };
-            
-            let path = format!("{}manifest-{}.json", self.config.prefix, manifest.created_at.timestamp_millis());
-            uploader.upload(path, bytes::Bytes::from(data)).await?;
+            uploader.upload_manifest(manifest).await
+        } else {
+            Ok(())
         }
-        Ok(())
+    }
+    
+    pub fn segment_count(&self) -> usize {
+        self.current_manifest.as_ref().map(|m| m.segments.len()).unwrap_or(0)
+    }
+    
+    pub fn total_records(&self) -> u64 {
+        self.current_manifest.as_ref().map(|m| m.segments.iter().map(|s| s.record_count).sum()).unwrap_or(0)
     }
 }

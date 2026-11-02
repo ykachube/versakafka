@@ -3,14 +3,16 @@
 use crate::{WalError, Result, config::WalConfig};
 use bytes::{Buf, BufMut, BytesMut};
 use crc32fast::Hasher;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::{Write, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use parking_lot::RwLock;
+use chrono::Utc;
 
 pub const SEGMENT_MAGIC: u32 = 0x4B50574C; // "KPWL"
 pub const SEGMENT_VERSION: u16 = 1;
+pub const HEADER_SIZE: u64 = 26; // 4+2+8+8+8
 
 #[derive(Debug, Clone)]
 pub struct SegmentHeader {
@@ -47,7 +49,12 @@ impl Segment {
         std::fs::create_dir_all(dir)?;
         let path = dir.join(format!("{:020}.wal", segment_id));
         
-        let file = File::create(&path)?;
+        let file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .read(true)
+            .open(&path)?;
+        
         let mut segment = Self {
             config,
             path,
@@ -56,7 +63,7 @@ impl Segment {
                 magic: SEGMENT_MAGIC,
                 version: SEGMENT_VERSION,
                 segment_id,
-                created_at: chrono::Utc::now().timestamp_millis(),
+                created_at: Utc::now().timestamp_millis(),
                 base_offset,
             },
             next_offset: base_offset,
@@ -68,10 +75,14 @@ impl Segment {
     }
 
     pub fn open(config: WalConfig, path: &Path) -> Result<Self> {
-        let mut file = File::open(path)?;
+        let mut file = OpenOptions::new()
+            .write(true)
+            .read(true)
+            .open(path)?;
+        
         let header = Self::read_header(&mut file)?;
         let size = file.metadata()?.len();
-        let next_offset = header.base_offset + 1; // Simplified
+        let next_offset = header.base_offset; // Will be updated on first append
         
         Ok(Self {
             config,
@@ -91,12 +102,15 @@ impl Segment {
         buf.put_i64(self.header.created_at);
         buf.put_i64(self.header.base_offset);
         
-        self.file.write().write_all(&buf)?;
-        self.size += buf.len() as u64;
+        let mut file = self.file.write();
+        file.seek(SeekFrom::Start(0))?;
+        file.write_all(&buf)?;
+        self.size = buf.len() as u64;
         Ok(())
     }
 
     fn read_header(file: &mut File) -> Result<SegmentHeader> {
+        file.seek(SeekFrom::Start(0))?;
         let mut buf = [0u8; 26]; // 4+2+8+8+8
         file.read_exact(&mut buf)?;
         let mut cursor = std::io::Cursor::new(&buf);
@@ -161,11 +175,15 @@ impl Segment {
         buf[header_start+4..header_start+8].copy_from_slice(&record_len.to_be_bytes());
         
         // Write to file
-        let mut file = self.file.write();
-        file.write_all(&buf)?;
+        {
+            let mut file = self.file.write();
+            file.seek(SeekFrom::End(0))?;
+            file.write_all(&buf)?;
+        }
         
         // Fsync if configured
         if matches!(self.config.fsync_policy, super::config::FsyncPolicy::Always) {
+            let mut file = self.file.write();
             file.flush()?;
             file.sync_all()?;
         }
@@ -177,6 +195,42 @@ impl Segment {
     pub fn is_full(&self) -> bool {
         self.size >= self.config.segment_size as u64
     }
+    
+    pub fn verify_checksums(&self) -> Result<()> {
+        let mut file = self.file.write();
+        file.seek(SeekFrom::Start(HEADER_SIZE))?;
+        
+        loop {
+            // Read record header
+            let mut header_buf = [0u8; 38];
+            match file.read_exact(&mut header_buf) {
+                Ok(_) => {},
+                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                    break; // Normal end
+                }
+                Err(e) => return Err(WalError::Reader(e.to_string())),
+            }
+            
+            let mut cursor = std::io::Cursor::new(&header_buf);
+            let crc = cursor.get_u32();
+            let length = cursor.get_u32();
+            
+            // Read record data
+            let mut data = vec![0u8; length as usize - 38];
+            file.read_exact(&mut data)?;
+            
+            // Verify CRC
+            let mut hasher = Hasher::new();
+            hasher.update(&data);
+            let computed_crc = hasher.finalize();
+            
+            if crc != computed_crc {
+                return Err(WalError::ChecksumMismatch(format!("CRC mismatch: expected {}, got {}", crc, computed_crc)));
+            }
+        }
+        
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -186,4 +240,5 @@ pub struct WalRecord {
     pub value: Vec<u8>,
     pub headers: Vec<(String, Vec<u8>)>,
     pub event_id: Option<Vec<u8>>,
+    pub offset: i64,
 }

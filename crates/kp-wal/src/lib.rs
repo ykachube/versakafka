@@ -30,4 +30,12 @@ pub enum WalError {
 pub type Result<T> = std::result::Result<T, WalError>;
 
 // Re-export from segment
-pub use segment::WalRecord;
+pub use segment::{WalRecord, Segment, SegmentHeader, RecordHeader};
+// Re-export from writer
+pub use writer::WalWriter;
+// Re-export from reader
+pub use reader::WalReader;
+// Re-export from recovery
+pub use recovery::recover;
+// Re-export from config
+pub use config::{WalConfig, FsyncPolicy, RecoveryConfig};
