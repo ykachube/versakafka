@@ -1,0 +1,46 @@
+{
+  "name": "kms-throttling",
+  "description": "KMS throttles requests, DEK cache should serve until TTL expires",
+  "seed": 19001,
+  "duration_seconds": 180,
+  "load": {
+    "rate_per_sec": 2000,
+    "record_size_bytes": 1024,
+    "topic": "test-topic-kms",
+    "partitions": 6,
+    "key_distribution": "uniform"
+  },
+  "failure_injection": [
+    {
+      "at_seconds": 10,
+      "type": "toxiproxy",
+      "target": "localstack",
+      "scenario": "localstack-latency"
+    },
+    {
+      "at_seconds": 30,
+      "type": "kms_throttle",
+      "target": "localstack",
+      "rate_limit": 5
+    },
+    {
+      "at_seconds": 120,
+      "type": "kms_recover",
+      "target": "localstack"
+    }
+  ],
+  "expected": {
+    "invariant_I1": true,
+    "invariant_I2": true,
+    "dek_cache_hit_rate_above": 0.95,
+    "no_encryption_failures": true,
+    "decryption_works_after_recovery": true
+  },
+  "checks": [
+    "ledger_matches_channels",
+    "event_ids_consistent",
+    "no_duplicate_acks",
+    "crypto_headers_present",
+    "hmac_validation_passes"
+  ]
+}

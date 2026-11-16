@@ -1,0 +1,15 @@
+{
+  "name": "minio-slow-upload",
+  "upstream": "minio:9000",
+  "toxics": [
+    {
+      "name": "latency",
+      "type": "latency",
+      "stream": "upstream",
+      "attributes": {
+        "latency": 5000,
+        "jitter": 1000
+      }
+    }
+  ]
+}

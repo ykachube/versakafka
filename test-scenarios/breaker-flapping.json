@@ -1,0 +1,41 @@
+{
+  "name": "breaker-flapping",
+  "description": "Breaker rapidly opens/closes due to flapping errors, should stabilize",
+  "seed": 21001,
+  "duration_seconds": 180,
+  "load": {
+    "rate_per_sec": 2000,
+    "record_size_bytes": 1024,
+    "topic": "test-topic-breaker-flap",
+    "partitions": 6,
+    "key_distribution": "uniform"
+  },
+  "failure_injection": [
+    {
+      "at_seconds": 10,
+      "type": "toxiproxy",
+      "target": "kafka-primary",
+      "scenario": "kafka-primary-flapping"
+    },
+    {
+      "at_seconds": 60,
+      "type": "toxiproxy",
+      "target": "kafka-primary",
+      "scenario": "kafka-primary-recover"
+    }
+  ],
+  "expected": {
+    "invariant_I1": true,
+    "invariant_I2": true,
+    "invariant_I5": true,
+    "breaker_state_changes_bounded": 5,
+    "no_thrashing": true
+  ],
+  "checks": [
+    "ledger_matches_channels",
+    "event_ids_consistent",
+    "no_duplicate_acks",
+    "breaker_state_log_bounded",
+    "healthy_channel_latency_stable"
+  ]
+}

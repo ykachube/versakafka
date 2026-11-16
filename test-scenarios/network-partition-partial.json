@@ -1,0 +1,39 @@
+{
+  "name": "network-partition-partial",
+  "description": "Partial network partition - proxy can reach broker but not controller, metadata requests fail",
+  "seed": 11001,
+  "duration_seconds": 120,
+  "load": {
+    "rate_per_sec": 1000,
+    "record_size_bytes": 1024,
+    "topic": "test-topic",
+    "partitions": 6,
+    "key_distribution": "uniform"
+  },
+  "failure_injection": [
+    {
+      "at_seconds": 15,
+      "type": "toxiproxy",
+      "target": "kafka-primary",
+      "scenario": "kafka-primary-latency"
+    },
+    {
+      "at_seconds": 20,
+      "type": "toxiproxy",
+      "target": "kafka-primary",
+      "scenario": "kafka-controller-unavailable"
+    }
+  ],
+  "expected": {
+    "invariant_I1": true,
+    "invariant_I2": true,
+    "invariant_I5": true,
+    "metadata_refresh_degraded": true
+  },
+  "checks": [
+    "ledger_matches_channels",
+    "event_ids_consistent",
+    "no_duplicate_acks",
+    "metadata_cache_stale_detected"
+  ]
+}

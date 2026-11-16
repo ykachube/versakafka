@@ -1,0 +1,43 @@
+{
+  "name": "consumer-group-rebalance-storm",
+  "description": "Many consumers join/leave rapidly causing rebalance storms",
+  "seed": 25001,
+  "duration_seconds": 180,
+  "load": {
+    "rate_per_sec": 3000,
+    "record_size_bytes": 1024,
+    "topic": "test-topic-rebalance-storm",
+    "partitions": 24,
+    "key_distribution": "uniform"
+  },
+  "failure_injection": [
+    {
+      "at_seconds": 10,
+      "type": "consumer_storm",
+      "target": "consumer-group",
+      "join_rate_per_sec": 10,
+      "leave_rate_per_sec": 10
+    },
+    {
+      "at_seconds": 60,
+      "type": "consumer_storm",
+      "target": "consumer-group",
+      "join_rate_per_sec": 5,
+      "leave_rate_per_sec": 5
+    }
+  ],
+  "expected": {
+    "invariant_I1": true,
+    "invariant_I2": true,
+    "invariant_I5": true,
+    "no_produce_blockage": true,
+    "rebalance_duration_bounded_ms": 30000
+  },
+  "checks": [
+    "ledger_matches_channels",
+    "event_ids_consistent",
+    "no_duplicate_acks",
+    "produce_latency_during_storm",
+    "rebalance_completion_time"
+  ]
+}

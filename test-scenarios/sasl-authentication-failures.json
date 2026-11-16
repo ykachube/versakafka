@@ -1,0 +1,38 @@
+{
+  "name": "sasl-authentication-failures",
+  "description": "SASL authentication intermittently fails, proxy should retry and handle auth errors",
+  "seed": 16001,
+  "duration_seconds": 120,
+  "load": {
+    "rate_per_sec": 1500,
+    "record_size_bytes": 1024,
+    "topic": "test-topic-sasl",
+    "partitions": 6,
+    "key_distribution": "uniform"
+  },
+  "failure_injection": [
+    {
+      "at_seconds": 15,
+      "type": "sasl_auth_failure",
+      "target": "kafka-1",
+      "error_rate": 0.3
+    },
+    {
+      "at_seconds": 45,
+      "type": "sasl_reauth_required",
+      "target": "kafka-1"
+    }
+  ],
+  "expected": {
+    "invariant_I1": true,
+    "invariant_I2": true,
+    "reauth_within_ms": 5000,
+    "no_permanent_auth_failures": true
+  },
+  "checks": [
+    "ledger_matches_channels",
+    "event_ids_consistent",
+    "no_duplicate_acks",
+    "sasl_reauth_success_rate"
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "name": "s3-unavailable",
+  "description": "S3/MinIO unavailable during spill, segments should remain local",
+  "seed": 56789,
+  "duration_seconds": 120,
+  "load": {
+    "rate_per_sec": 1000,
+    "record_size_bytes": 1024,
+    "topic": "test-topic-spill",
+    "partitions": 6,
+    "key_distribution": "uniform",
+    "ack_policy": "all-or-spill"
+  },
+  "failure_injection": [
+    {
+      "at_seconds": 10,
+      "type": "toxiproxy",
+      "target": "kafka-primary",
+      "scenario": "kafka-primary-unavailable"
+    },
+    {
+      "at_seconds": 15,
+      "type": "toxiproxy",
+      "target": "minio",
+      "scenario": "minio-unavailable"
+    },
+    {
+      "at_seconds": 90,
+      "type": "toxiproxy",
+      "target": "minio",
+      "scenario": "minio-recover"
+    }
+  ],
+  "expected": {
+    "invariant_I1": true,
+    "invariant_I2": true,
+    "invariant_I7": true,
+    "local_wal_contains_all_records": true,
+    "spill_uploaded_after_recovery": true
+  },
+  "checks": [
+    "ledger_matches_wal_and_channels",
+    "event_ids_consistent",
+    "no_duplicate_acks",
+    "backpressure_activated_during_s3_outage",
+    "spill_uploaded_after_recovery"
+  ]
+}

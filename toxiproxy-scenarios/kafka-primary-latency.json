@@ -1,0 +1,15 @@
+{
+  "name": "kafka-primary-latency",
+  "upstream": "kafka-1:9092",
+  "toxics": [
+    {
+      "name": "latency",
+      "type": "latency",
+      "stream": "downstream",
+      "attributes": {
+        "latency": 500,
+        "jitter": 100
+      }
+    }
+  ]
+}

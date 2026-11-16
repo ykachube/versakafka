@@ -1,0 +1,38 @@
+{
+  "name": "tls-certificate-expiration",
+  "description": "TLS certificate expires or rotation occurs, proxy should handle reconnection",
+  "seed": 15001,
+  "duration_seconds": 120,
+  "load": {
+    "rate_per_sec": 2000,
+    "record_size_bytes": 1024,
+    "topic": "test-topic-tls",
+    "partitions": 6,
+    "key_distribution": "uniform"
+  },
+  "failure_injection": [
+    {
+      "at_seconds": 20,
+      "type": "tls_cert_rotation",
+      "target": "kafka-1",
+      "new_cert": "rotated"
+    },
+    {
+      "at_seconds": 40,
+      "type": "tls_expired_cert",
+      "target": "kafka-2"
+    }
+  ],
+  "expected": {
+    "invariant_I1": true,
+    "invariant_I2": true,
+    "reconnection_within_ms": 10000,
+    "no_data_loss_during_rotation": true
+  },
+  "checks": [
+    "ledger_matches_channels",
+    "event_ids_consistent",
+    "no_duplicate_acks",
+    "tls_handshake_success_after_rotation"
+  ]
+}

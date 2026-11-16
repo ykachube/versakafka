@@ -1,0 +1,15 @@
+{
+  "name": "localstack-latency",
+  "upstream": "localstack:4566",
+  "toxics": [
+    {
+      "name": "latency",
+      "type": "latency",
+      "stream": "downstream",
+      "attributes": {
+        "latency": 2000,
+        "jitter": 500
+      }
+    }
+  ]
+}

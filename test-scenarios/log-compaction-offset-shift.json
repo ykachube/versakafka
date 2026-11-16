@@ -1,0 +1,39 @@
+{
+  "name": "log-compaction-offset-shift",
+  "description": "Log compaction shifts offsets, proxy should handle offset translation",
+  "seed": 23001,
+  "duration_seconds": 240,
+  "load": {
+    "rate_per_sec": 1000,
+    "record_size_bytes": 1024,
+    "topic": "test-topic-compaction",
+    "partitions": 6,
+    "key_distribution": "keyed"
+  },
+  "failure_injection": [
+    {
+      "at_seconds": 60,
+      "type": "log_compaction",
+      "target": "kafka-1",
+      "topic": "test-topic-compaction"
+    },
+    {
+      "at_seconds": 120,
+      "type": "log_compaction",
+      "target": "kafka-1",
+      "topic": "test-topic-compaction"
+    }
+  ],
+  "expected": {
+    "invariant_I1": true,
+    "invariant_I2": true,
+    "offset_translation_correct": true,
+    "no_duplicate_delivery": true
+  },
+  "checks": [
+    "ledger_matches_channels",
+    "event_ids_consistent",
+    "no_duplicate_acks",
+    "consumer_offset_consistency"
+  ]
+}

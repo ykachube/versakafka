@@ -1,0 +1,10 @@
+{
+  "name": "arc-flapping",
+  "regions": {
+    "us-east-1": {"status": "healthy", "routing_control": "enabled", "cluster": "primary"},
+    "us-west-2": {"status": "flapping", "routing_control": "enabled", "cluster": "secondary", "flip_interval_ms": 2000},
+    "eu-west-1": {"status": "healthy", "routing_control": "enabled", "cluster": "secondary"},
+    "ap-southeast-1": {"status": "healthy", "routing_control": "enabled", "cluster": "secondary"},
+    "sa-east-1": {"status": "healthy", "routing_control": "enabled", "cluster": "secondary"}
+  }
+}

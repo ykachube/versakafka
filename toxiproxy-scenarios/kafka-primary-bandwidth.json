@@ -1,0 +1,14 @@
+{
+  "name": "kafka-primary-bandwidth",
+  "upstream": "kafka-1:9092",
+  "toxics": [
+    {
+      "name": "bandwidth",
+      "type": "bandwidth",
+      "stream": "downstream",
+      "attributes": {
+        "rate": 1024
+      }
+    }
+  ]
+}

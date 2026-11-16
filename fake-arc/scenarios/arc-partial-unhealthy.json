@@ -1,0 +1,10 @@
+{
+  "name": "arc-partial-unhealthy",
+  "regions": {
+    "us-east-1": {"status": "healthy", "routing_control": "enabled", "cluster": "primary"},
+    "us-west-2": {"status": "unhealthy", "routing_control": "disabled", "cluster": "secondary"},
+    "eu-west-1": {"status": "healthy", "routing_control": "enabled", "cluster": "secondary"},
+    "ap-southeast-1": {"status": "healthy", "routing_control": "enabled", "cluster": "secondary"},
+    "sa-east-1": {"status": "healthy", "routing_control": "enabled", "cluster": "secondary"}
+  }
+}

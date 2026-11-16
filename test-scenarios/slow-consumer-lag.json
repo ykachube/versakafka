@@ -1,0 +1,33 @@
+{
+  "name": "slow-consumer-lag",
+  "description": "Consumer falls behind, fetch requests pile up, proxy should handle backpressure",
+  "seed": 12001,
+  "duration_seconds": 180,
+  "load": {
+    "rate_per_sec": 5000,
+    "record_size_bytes": 1024,
+    "topic": "test-topic-lag",
+    "partitions": 12,
+    "key_distribution": "uniform"
+  },
+  "failure_injection": {
+    "at_seconds": 30,
+    "type": "consumer_pause",
+    "target": "consumer-group",
+    "duration_seconds": 60
+  },
+  "expected": {
+    "invariant_I1": true,
+    "invariant_I5": true,
+    "invariant_I7": true,
+    "backpressure_activated": true,
+    "max_consumer_lag": 100000
+  },
+  "checks": [
+    "ledger_matches_channels",
+    "event_ids_consistent",
+    "no_duplicate_acks",
+    "producer_not_blocked_indefinitely",
+    "fetch_queue_bounded"
+  ]
+}

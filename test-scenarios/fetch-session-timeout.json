@@ -1,0 +1,39 @@
+{
+  "name": "fetch-session-timeout",
+  "description": "Fetch session expires due to slow consumer, proxy should handle session reset",
+  "seed": 26001,
+  "duration_seconds": 180,
+  "load": {
+    "rate_per_sec": 2000,
+    "record_size_bytes": 1024,
+    "topic": "test-topic-fetch-timeout",
+    "partitions": 6,
+    "key_distribution": "uniform"
+  },
+  "failure_injection": [
+    {
+      "at_seconds": 15,
+      "type": "consumer_pause",
+      "target": "consumer-group",
+      "duration_seconds": 60
+    },
+    {
+      "at_seconds": 90,
+      "type": "fetch_session_timeout",
+      "target": "consumer-group",
+      "session_timeout_ms": 10000
+    }
+  ],
+  "expected": {
+    "invariant_I1": true,
+    "invariant_I2": true,
+    "session_reset_handled": true,
+    "no_data_loss_on_reset": true
+  },
+  "checks": [
+    "ledger_matches_channels",
+    "event_ids_consistent",
+    "no_duplicate_acks",
+    "fetch_session_recovery_time"
+  ]
+}

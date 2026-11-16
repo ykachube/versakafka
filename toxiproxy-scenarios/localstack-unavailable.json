@@ -1,0 +1,14 @@
+{
+  "name": "localstack-unavailable",
+  "upstream": "localstack:4566",
+  "toxics": [
+    {
+      "name": "reset_peer",
+      "type": "reset_peer",
+      "stream": "downstream",
+      "attributes": {
+        "probability": 1.0
+      }
+    }
+  ]
+}

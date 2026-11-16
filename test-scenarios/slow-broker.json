@@ -1,0 +1,33 @@
+{
+  "name": "slow-broker",
+  "description": "Primary broker slows down, breaker should trigger by latency",
+  "seed": 34567,
+  "duration_seconds": 90,
+  "load": {
+    "rate_per_sec": 2000,
+    "record_size_bytes": 512,
+    "topic": "test-topic",
+    "partitions": 12,
+    "key_distribution": "uniform"
+  },
+  "failure_injection": {
+    "at_seconds": 10,
+    "type": "toxiproxy",
+    "target": "kafka-primary",
+    "scenario": "kafka-primary-latency"
+  },
+  "expected": {
+    "invariant_I1": true,
+    "invariant_I2": true,
+    "invariant_I5": true,
+    "healthy_channel_latency_p99_ms": 50,
+    "breaker_triggered_by_latency": true
+  },
+  "checks": [
+    "ledger_matches_channels",
+    "event_ids_consistent",
+    "no_duplicate_acks",
+    "secondary_channel_unaffected",
+    "breaker_state_transition_logged"
+  ]
+}
