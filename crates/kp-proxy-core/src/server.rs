@@ -1,67 +1,102 @@
 //! Proxy server
 
 use crate::{ProxyCoreError, Result, connection::Connection, framing::KafkaFrameCodec, drain::DrainManager, backpressure::Backpressure, breaker::BreakerIntegration, crypto::CryptoIntegration};
-use super::config::ProxyConfig;
+use super::config::ServerConfig;
 use tokio::net::TcpListener;
-use tokio_util::codec::Framed;
 use std::sync::Arc;
 use tokio::signal;
 use kp_metadata::MetadataRewriter;
-use kp_metadata::config::MetadataConfig;
-use kp_filters::{FilterChain, FiltersConfig};
-use kp_eventid::{EventIdGenerator, EventIdConfig};
-use kp_breaker::BreakerConfig;
-use kp_channel::{AckPolicyEngine, Channel, KafkaChannel, ChannelConfig, KafkaChannelConfig, AckPolicy};
-use kp_crypto::config::CryptoConfig;
+use kp_filters::{FilterChain, hooks::WasmHost};
+use kp_eventid::EventIdGenerator;
+use kp_channel::{AckPolicyEngine, Channel, KafkaChannel, ChannelConfig, KafkaChannelConfig};
+use kp_channel::config::ChannelType as ConfigChannelType;
+use kp_wasm::WasmHost as WasmHostImpl;
 use std::time::Duration;
 use std::collections::HashMap;
 
-pub async fn run_server(config: ProxyConfig) -> Result<()> {
+pub async fn run_server(config: ServerConfig) -> Result<()> {
+    // Initialize telemetry (tracing already initialized by binary)
+    tracing::info!("Starting proxy with config: listen_addr={}, channels={}", config.proxy.listen_addr, config.channels.len());
+    
     // Initialize metadata rewriter
-    let metadata_config = MetadataConfig {
-        routing_mode: kp_metadata::config::RoutingMode::Sni,
-        broker_map: HashMap::new(),
-        rewrite_enabled: true,
-    };
-    let metadata_rewriter = MetadataRewriter::new(metadata_config);
+    let metadata_rewriter = MetadataRewriter::new(config.metadata);
     
     // Initialize backpressure
-    let backpressure = Backpressure::new(config.backpressure.clone());
+    let backpressure = Backpressure::new(config.proxy.backpressure.clone());
     
-    // Initialize filter chain
-    let filters_config = FiltersConfig::default();
-    let event_id_config = EventIdConfig::default();
-    let filter_chain = Arc::new(FilterChain::new(filters_config, event_id_config, None));
+    // Initialize filter chain with WASM host if enabled
+    let wasm_host: Option<Arc<dyn WasmHost>> = if config.wasm.enabled {
+        let wasm_host = Arc::new(WasmHostImpl::new(config.wasm)?);
+        wasm_host.load_plugins().await?;
+        Some(wasm_host)
+    } else {
+        None
+    };
+    
+    let event_id_config = config.event_id.clone();
+    let filter_chain = Arc::new(FilterChain::new(
+        config.filters,
+        event_id_config,
+        wasm_host,
+    ));
     
     // Initialize event ID generator
-    let event_id_config = EventIdConfig::default();
-    let event_id_generator = Arc::new(EventIdGenerator::new(event_id_config));
+    let event_id_generator = Arc::new(EventIdGenerator::new(config.event_id));
     
     // Initialize breaker
-    let breaker_config = BreakerConfig::default();
-    let breaker_integration = Arc::new(BreakerIntegration::new(breaker_config)?);
+    let breaker_integration = Arc::new(BreakerIntegration::new(config.breaker)?);
     breaker_integration.start().await?;
     let breaker_manager = breaker_integration.get_manager();
     
-    // Initialize channels and ack policy engine
-    let channel_config = ChannelConfig::default();
-    let kafka_config = KafkaChannelConfig {
-        bootstrap_servers: "localhost:9092".to_string(),
-        client_id: "kp-proxy".to_string(),
-        producer_config: serde_json::json!({}),
-        topic_mapping: HashMap::new(),
-    };
-    let kafka_channel = Arc::new(KafkaChannel::new(channel_config, kafka_config));
-    let ack_policy_engine = Some(AckPolicyEngine::new(vec![kafka_channel]));
+    // Initialize channels from config
+    let mut channels: Vec<Arc<dyn Channel>> = Vec::new();
+    for channel_config in &config.channels {
+        match channel_config.channel_type {
+            ConfigChannelType::Kafka => {
+                if let Some(kafka_config) = &channel_config.kafka {
+                    let kafka_channel = Arc::new(KafkaChannel::new(
+                        channel_config.clone(),
+                        kafka_config.clone(),
+                    ));
+                    channels.push(kafka_channel as Arc<dyn Channel>);
+                }
+            }
+            ConfigChannelType::S3 => {
+                // Spill channel will be created separately with WAL path
+                // For now, skip - need WAL integration
+            }
+            ConfigChannelType::Wal => {
+                // WAL is handled separately, not as a fan-out channel
+            }
+            _ => {
+                tracing::warn!("Channel type {:?} not yet implemented", channel_config.channel_type);
+            }
+        }
+    }
+    
+    // If no channels configured, create default primary Kafka channel
+    if channels.is_empty() {
+        tracing::warn!("No channels configured, creating default primary Kafka channel");
+        let default_channel_config = ChannelConfig::default();
+        let kafka_config = KafkaChannelConfig {
+            bootstrap_servers: "localhost:9092".to_string(),
+            client_id: "kp-proxy".to_string(),
+            producer_config: serde_json::json!({}),
+            topic_mapping: HashMap::new(),
+        };
+        let kafka_channel = Arc::new(KafkaChannel::new(default_channel_config, kafka_config));
+        channels.push(kafka_channel as Arc<dyn Channel>);
+    }
+    
+    let ack_policy_engine = Some(AckPolicyEngine::new(channels));
     
     // Initialize crypto
-    let crypto_config = CryptoConfig::default();
-    let crypto_integration = Arc::new(CryptoIntegration::new(crypto_config).await?);
+    let crypto_integration = Arc::new(CryptoIntegration::new(config.crypto).await?);
     
-    let listener = TcpListener::bind(&config.listen_addr).await
+    let listener = TcpListener::bind(&config.proxy.listen_addr).await
         .map_err(|e| ProxyCoreError::Io(e))?;
     
-    let config = Arc::new(config);
+    let config = Arc::new(config.proxy);
     let drain = Arc::new(DrainManager::new());
     let metadata_rewriter = Arc::new(metadata_rewriter);
     let backpressure = Arc::new(backpressure);

@@ -25,6 +25,7 @@ use kp_wal::WalError;
 use kp_spill::SpillError;
 use kp_reconciler::ReconcilerError;
 use kp_crypto::CryptoError;
+use kp_wasm::WasmError;
 
 #[derive(Debug, Error)]
 pub enum ProxyCoreError {
@@ -60,6 +61,8 @@ pub enum ProxyCoreError {
     Reconciler(#[from] ReconcilerError),
     #[error("crypto error: {0}")]
     Crypto(#[from] CryptoError),
+    #[error("wasm error: {0}")]
+    Wasm(#[from] WasmError),
 }
 
 pub type Result<T> = std::result::Result<T, ProxyCoreError>;
