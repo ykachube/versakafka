@@ -9,49 +9,34 @@ Oct 11, 2026 · @yury
 | Фаза | Название | Статус | Готовность |
 |------|----------|--------|------------|
 | 0 | Фундамент и тестовый харнесс | ✅ **Готово** | 90% |
-| 1 | Pass-through прокси | ✅ **Реализовано** | 85% |
+| 1 | Pass-through прокси | ✅ **Реализовано** | 90% |
 | 2 | Filter chain, WASM, event-ID | ✅ **Реализовано** | 90% |
 | 3 | Circuit breaker + ARC | ✅ **Реализовано** | 85% |
 | 3b | Каналы и политики ack | ✅ **Реализовано** | 90% |
 | 4 | Spill, replay, reconciler, chaos | 🔄 **Крейты готовы, нужна интеграция** | 40% |
 | 5 | Re-encryption, multi-region, нагрузка | 🔄 **Крейты готовы, нужна интеграция** | 30% |
 
-**Ключевой вывод:** Все 14 крейтов реализованы и компилируются. Тестовый фреймворк (kp-testkit) имеет 10 проходящих юнит-тестов. Основной пробел — интеграция компонентов в работающий end-to-end прокси (kp-bin/main.rs — заглушка) и запуск интеграционных/chaos тестов (L5-L8).
+**Ключевой вывод:** Все 14 крейтов реализованы и компилируются. Тестовый фреймворк (kp-testkit) имеет 10 проходящих юнит-тестов. Основной пробел — интеграция компонентов в работающий end-to-end прокси и запуск интеграционных/chaos тестов (L5-L8). **Critical TODO #1 выполнен:** прокси теперь запускается с полной конфигурацией.
 
 ---
 
 ## 🔴 Critical TODOs для следующей итерации
 
-### 1. Исправить запуск прокси в `kp-bin/src/main.rs`
-**Проблема:** `main.rs:13-14` — только placeholder, сервер не запускается.
-**Решение:** Добавить `#[tokio::main]` и вызов `kp_bin::proxy::run_proxy(config).await?`.
+### 1. ✅ Исправить запуск прокси в `kp-bin/src/main.rs` — **ВЫПОЛНЕНО (commit 791f406)**
+**Проблема:** `main.rs:13-14` — только placeholder, сервер не запускался.
+**Решение:** Добавлен `#[tokio::main]` и вызов `kp_bin::proxy::run_proxy(config).await?`.
+**Дополнительно:** Унифицирована конфигурация через `ServerConfig` в `kp-proxy-core`, все под-конфиги (filters, wasm, channels, breaker, crypto, wal, spill, reconciler, event_id, metadata) теперь пробрасываются из `kp-bin` в `kp-proxy-core::server::run_server`.
 
-### 2. Унифицировать конфигурацию между `kp-bin` и `kp-proxy-core`
-**Проблема:** `kp_bin::config::ProxyConfig` загружает полную конфигурацию (14 секций), но `kp_proxy_core::server::run_server` принимает только `kp_proxy_core::config::ProxyConfig` (минимальный набор) и использует hardcoded defaults для всего остального.
-
-| Конфиг `kp-bin` | Используется в `run_server`? |
-|-----------------|------------------------------|
-| `proxy` (listen_addr, tls, backpressure) | ✅ Частично |
-| `telemetry` | ❌ Игнорируется |
-| `metadata` (routing_mode, broker_map) | ❌ Hardcoded SNI + пустой map |
-| `filters` | ❌ `FiltersConfig::default()` |
-| `wasm` | ❌ `None` для wasm_host |
-| `event_id` | ❌ `EventIdConfig::default()` |
-| `breaker` | ❌ `BreakerConfig::default()` |
-| `channels` (Vec<ChannelConfig>) | ❌ Hardcoded single `localhost:9092` |
-| `wal` / `spill` / `reconciler` | ❌ Не подключены |
-| `crypto` | ❌ `CryptoConfig::default()` |
-
-**Решение:** 
-- Вариант А: Расширить `kp_proxy_core::config::ProxyConfig` до полной конфигурации
-- Вариант Б: Передавать в `run_server` полный `kp_bin::config::ProxyConfig` и распаковывать внутри
-- Вариант В: Добавить `ServerConfig` в `kp-proxy-core`, который агрегирует все нужные под-конфиги
+### 2. Унифицировать конфигурацию между `kp-bin` и `kp-proxy-core` — **ЧАСТИЧНО ВЫПОЛНЕНО**
+**Статус:** `ServerConfig` создан и используется. Осталось:
+- Добавить SpillChannel/WALChannel создание из конфига (пока пропускаются)
+- TLS конфигурация (cert/key файлы) не используется в server.rs
+- Метрики telemetry (prometheus_port, otlp_endpoint) не подключены
 
 ### 3. Подключить каналы из конфигурации
-В `run_server` каналы создаются хардкодом. Нужно:
-- Итерировать по `config.channels` (Vec<ChannelConfig>)
-- Для каждого создавать соответствующий `Channel` (KafkaChannel, SpillChannel, etc.)
-- Передавать в `AckPolicyEngine`
+В `run_server` каналы создаются из `config.channels`. Нужно:
+- Реализовать создание SpillChannel и WALChannel
+- Подключить breaker references по имени из `channel_config.breaker`
 
 ### 4. Запустить baseline-бенчмарк (Фаза 0 гейт)
 Пока нет измерений p50/p99 без прокси — нельзя верифицировать бюджет задержки.
