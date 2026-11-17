@@ -100,11 +100,16 @@ services:
     networks:
       - kp-test-network
 
+# ============================================================
+  # TOXIPROXY - Failure injection proxy
   # ============================================================
-  # TOXIPROXY - Chaos testing
-  # ============================================================
+  # NOTE: On Docker Desktop Windows/Mac, toxiproxy API may not be reachable on host localhost:8474
+  # because it binds to container's 127.0.0.1. Workarounds:
+  #   1. Run toxiproxy directly on host: `toxiproxy-server -host 0.0.0.0`
+  #   2. Use Linux CI where 0.0.0.0 binding works correctly
+  #   3. Add socat sidecar for port forwarding
   toxiproxy:
-    image: shopify/toxiproxy:latest
+    image: ghcr.io/shopify/toxiproxy:2.1.4
     hostname: toxiproxy
     container_name: kp-test-toxiproxy
     ports:
