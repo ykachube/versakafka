@@ -9,14 +9,14 @@ Oct 11, 2026 · @yury
 | Фаза | Название | Статус | Готовность |
 |------|----------|--------|------------|
 | 0 | Фундамент и тестовый харнесс | ✅ **Готово** | 90% |
-| 1 | Pass-through прокси | ✅ **Реализовано** | 90% |
+| 1 | Pass-through прокси | ✅ **Реализовано** | 95% |
 | 2 | Filter chain, WASM, event-ID | ✅ **Реализовано** | 90% |
 | 3 | Circuit breaker + ARC | ✅ **Реализовано** | 85% |
-| 3b | Каналы и политики ack | ✅ **Реализовано** | 90% |
-| 4 | Spill, replay, reconciler, chaos | 🔄 **Крейты готовы, нужна интеграция** | 40% |
+| 3b | Каналы и политики ack | ✅ **Реализовано** | 95% |
+| 4 | Spill, replay, reconciler, chaos | 🔄 **Крейты готовы, нужна интеграция** | 50% |
 | 5 | Re-encryption, multi-region, нагрузка | 🔄 **Крейты готовы, нужна интеграция** | 30% |
 
-**Ключевой вывод:** Все 14 крейтов реализованы и компилируются. Тестовый фреймворк (kp-testkit) имеет 10 проходящих юнит-тестов. Основной пробел — интеграция компонентов в работающий end-to-end прокси и запуск интеграционных/chaos тестов (L5-L8). **Critical TODO #1 выполнен:** прокси теперь запускается с полной конфигурацией.
+**Ключевой вывод:** Все 14 крейтов реализованы и компилируются. Тестовый фреймворк (kp-testkit) имеет 10 проходящих юнит-тестов. Основной пробел — интеграция компонентов в работающий end-to-end прокси и запуск интеграционных/chaos тестов (L5-L8). **Critical TODO #1-2 выполнены:** прокси запускается с полной конфигурацией, каналы (Kafka, S3/Spill, WAL), TLS, Prometheus stub подключены.
 
 ---
 
@@ -27,22 +27,23 @@ Oct 11, 2026 · @yury
 **Решение:** Добавлен `#[tokio::main]` и вызов `kp_bin::proxy::run_proxy(config).await?`.
 **Дополнительно:** Унифицирована конфигурация через `ServerConfig` в `kp-proxy-core`, все под-конфиги (filters, wasm, channels, breaker, crypto, wal, spill, reconciler, event_id, metadata) теперь пробрасываются из `kp-bin` в `kp-proxy-core::server::run_server`.
 
-### 2. Унифицировать конфигурацию между `kp-bin` и `kp-proxy-core` — **ЧАСТИЧНО ВЫПОЛНЕНО**
-**Статус:** `ServerConfig` создан и используется. Осталось:
-- Добавить SpillChannel/WALChannel создание из конфига (пока пропускаются)
-- TLS конфигурация (cert/key файлы) не используется в server.rs
-- Метрики telemetry (prometheus_port, otlp_endpoint) не подключены
+### 2. ✅ Унифицировать конфигурацию и подключить каналы — **ВЫПОЛНЕНО (commit 56d6e6c)**
+**Статус:** 
+- ✅ `ServerConfig` создан и используется
+- ✅ SpillChannel создается для S3 channel type (пишет в WAL, затем в S3)
+- ✅ WALChannel создается для Wal channel type (только локальный WAL)
+- ✅ TLS конфигурация загружается и используется (cert/key файлы)
+- ✅ Prometheus metrics endpoint stub добавлен (config.telemetry.prometheus_port)
+- ⏳ Полноценный Prometheus /metrics endpoint (нужно подключить metrics-exporter-prometheus)
 
-### 3. Подключить каналы из конфигурации
-В `run_server` каналы создаются из `config.channels`. Нужно:
-- Реализовать создание SpillChannel и WALChannel
-- Подключить breaker references по имени из `channel_config.breaker`
-
-### 4. Запустить baseline-бенчмарк (Фаза 0 гейт)
+### 3. Запустить baseline-бенчмарк (Фаза 0 гейт)
 Пока нет измерений p50/p99 без прокси — нельзя верифицировать бюджет задержки.
 
-### 5. Настроить docker-compose.test.yml для интеграционных тестов
+### 4. Настроить docker-compose.test.yml для интеграционных тестов
 Сервисы: primary Kafka, secondary Kafka, MinIO, LocalStack (KMS/S3/DynamoDB), Toxiproxy, Fake ARC (5 endpoints), Prometheus, Grafana, Jaeger.
+
+### 5. Реализовать chaos-сценарии (L8)
+Используя `kp-testkit::scenario_runner::chaos_scenarios` (10 сценариев готовы, нужно 30 по плану).
 
 ## Цели и рамки v1
 
