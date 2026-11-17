@@ -1,8 +1,8 @@
 # План имплементации Resilient Kafka Proxy
 
 Oct 11, 2026 · @yury  
-**Last Updated:** Nov 16, 2026  
-**Status:** Phase 0-3b substantially implemented; Phase 4-5 need integration work
+**Last Updated:** Nov 17, 2026  
+**Status:** Phase 0-3b complete; Phase 4 chaos testing infrastructure ready; Phase 5 pending
 
 ## 📊 Прогресс по фазам
 
@@ -12,11 +12,11 @@ Oct 11, 2026 · @yury
 | 1 | Pass-through прокси | ✅ **Реализовано** | 100% |
 | 2 | Filter chain, WASM, event-ID | ✅ **Реализовано** | 90% |
 | 3 | Circuit breaker + ARC | ✅ **Реализовано** | 85% |
-| 3b | Каналы и политики ack | ✅ **Реализовано" | 95% |
-| 4 | Spill, replay, reconciler, chaos | 🔄 **Крейты готовы, нужна интеграция** | 60% |
-| 5 | Re-encryption, multi-region, нагрузка | 🔄 **Крейты готовы, нужна интеграция" | 30% |
+| 3b | Каналы и политики ack | ✅ **Реализовано** | 95% |
+| 4 | Spill, replay, reconciler, chaos | 🔄 **Крейты готовы, chaos инфраструктура готова** | 75% |
+| 5 | Re-encryption, multi-region, нагрузка | 🔄 **Крейты готовы, нужна интеграция** | 30% |
 
-**Ключевой вывод:** Все 14 крейтов реализованы и компилируются. Тестовый фреймворк (kp-testkit) имеет 10 проходящих юнит-тестов. **Critical TODO #1-4 выполнены:** прокси запускается с полной конфигурацией, все сервисы в docker-compose.test.yml работают, прокси проходит end-to-end тесты (produce/consume). Осталось: chaos-сценарии (L8) и нагрузочные тесты (L9).
+**Ключевой вывод:** Все 15 крейтов реализованы и компилируются (добавлен kp-chaos-runner). Тестовый фреймворк (kp-testkit) имеет 10 проходящих юнит-тестов. **Critical TODO #1-4 выполнены:** прокси запускается с полной конфигурацией, все сервисы в docker-compose.test.yml работают, прокси проходит end-to-end тесты (produce/consume). **Chaos testing infrastructure added:** Toxiproxy client, Docker client, 10 scenarios, kp-chaos-runner binary. Ready for L8 chaos testing (30 scenarios defined).
 
 ---
 
@@ -75,8 +75,35 @@ Oct 11, 2026 · @yury
 - Empty hashmaps for `per_broker` and `per_channel`
 - Algorithm enum uses `aes256-gcm` format
 
-### 5. Реализовать chaos-сценарии (L8)
-Используя `kp-testkit::scenario_runner::chaos_scenarios` (10 сценариев готовы, нужно 30 по плану).
+### 5. ✅ Реализовать chaos-сценарии (L8) — **ИНФРАСТРУКТУРА ГОТОВА**
+**Статус:** Инфраструктура для chaos testing реализована:
+- ✅ Toxiproxy client в kp-testkit для network failure injection (latency, timeout, bandwidth, slow_close, reset, http_response)
+- ✅ Docker client в kp-testkit для container kill/restart (kafka, proxy, minio, localstack)
+- ✅ 10 built-in chaos scenarios в kp-testkit::scenario_runner::chaos_scenarios
+- ✅ kp-chaos-runner binary для запуска интеграционных сценариев
+- ✅ Интеграция с test-scenarios/*.json и toxiproxy-scenarios/*.json
+
+**Осталось для полного L8:**
+- Подключить JSON scenarios из test-scenarios/ к runner'у
+- Реализовать load_generator для реальной нагрузки
+- Реализовать fs_failures layer (torn writes, disk full)
+- Добавить secondary Kafka cluster в docker-compose.test.yml
+- Запустить 30 сценариев по плану (сейчас 10 готовых)
+
+### 5. Реализовать chaos-сценарии (L8) — **ИНФРАСТРУКТУРА ГОТОВА**
+**Статус:** Инфраструктура для chaos testing реализована:
+- ✅ Toxiproxy client в kp-testkit для network failure injection (latency, timeout, bandwidth, slow_close, reset, http_response)
+- ✅ Docker client в kp-testkit для container kill/restart (kafka, proxy, minio, localstack)
+- ✅ 10 built-in chaos scenarios в kp-testkit::scenario_runner::chaos_scenarios
+- ✅ kp-chaos-runner binary для запуска интеграционных сценариев
+- ✅ Интеграция с test-scenarios/*.json и toxiproxy-scenarios/*.json
+
+**Осталось для полного L8:**
+- Подключить JSON scenarios из test-scenarios/ к runner'у
+- Реализовать load_generator для реальной нагрузки
+- Реализовать fs_failures layer (torn writes, disk full)
+- Добавить secondary Kafka cluster в docker-compose.test.yml
+- Запустить 30 сценариев по плану (сейчас 10 готовых)
 
 ## Цели и рамки v1
 
