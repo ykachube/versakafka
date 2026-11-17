@@ -17,7 +17,7 @@ struct Args {
     scenario: Option<String>,
 
     /// Random seed
-    #[arg(short, long, default_value = "42")]
+    #[arg(short = 'd', long, default_value = "42")]
     seed: u64,
 
     /// Toxiproxy URL
