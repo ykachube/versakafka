@@ -19,9 +19,14 @@ use kp_filters::FilterChain;
 use kp_eventid::EventIdGenerator;
 use kp_breaker::BreakerManager;
 use kp_channel::{AckPolicyEngine, Channel};
+use tokio::io::{AsyncRead, AsyncWrite};
+
+/// Trait for streams that can be used with the Kafka frame codec
+pub trait KafkaStream: AsyncRead + AsyncWrite + Unpin + Send {}
+impl<T: AsyncRead + AsyncWrite + Unpin + Send> KafkaStream for T {}
 
 pub struct Connection {
-    stream: Framed<TcpStream, crate::framing::KafkaFrameCodec>,
+    stream: Framed<Box<dyn KafkaStream>, crate::framing::KafkaFrameCodec>,
     config: Arc<super::config::ProxyConfig>,
     metadata_rewriter: Arc<MetadataRewriter>,
     backpressure: Arc<crate::backpressure::Backpressure>,
@@ -30,7 +35,7 @@ pub struct Connection {
 
 impl Connection {
     pub fn new(
-        stream: TcpStream, 
+        stream: Box<dyn KafkaStream>, 
         config: Arc<super::config::ProxyConfig>,
         metadata_rewriter: Arc<MetadataRewriter>,
         backpressure: Arc<crate::backpressure::Backpressure>,

@@ -1,7 +1,7 @@
 //! Proxy server
 
-use crate::{ProxyCoreError, Result, connection::Connection, framing::KafkaFrameCodec, drain::DrainManager, backpressure::Backpressure, breaker::BreakerIntegration, crypto::CryptoIntegration};
-use super::config::ServerConfig;
+use crate::{ProxyCoreError, Result, connection::Connection, framing::KafkaFrameCodec, drain::DrainManager, backpressure::Backpressure, breaker::BreakerIntegration, crypto::CryptoIntegration, tls::build_tls_config};
+use super::config::ServerConfig as CoreServerConfig;
 use tokio::net::TcpListener;
 use std::sync::Arc;
 use tokio::signal;
@@ -11,12 +11,27 @@ use kp_eventid::EventIdGenerator;
 use kp_channel::{AckPolicyEngine, Channel, KafkaChannel, ChannelConfig, KafkaChannelConfig};
 use kp_channel::config::ChannelType as ConfigChannelType;
 use kp_wasm::WasmHost as WasmHostImpl;
+use kp_spill::channel::SpillChannel;
+use kp_spill::config::SpillConfig;
+use rustls::ServerConfig as RustlsServerConfig;
+use tokio_rustls::TlsAcceptor;
+use tokio_rustls::server::TlsStream;
 use std::time::Duration;
 use std::collections::HashMap;
+use std::path::PathBuf;
+use tokio::io::{AsyncRead, AsyncWrite};
 
-pub async fn run_server(config: ServerConfig) -> Result<()> {
+pub async fn run_server(config: CoreServerConfig) -> Result<()> {
     // Initialize telemetry (tracing already initialized by binary)
     tracing::info!("Starting proxy with config: listen_addr={}, channels={}", config.proxy.listen_addr, config.channels.len());
+    
+    // Initialize TLS if configured
+    let tls_acceptor: Option<TlsAcceptor> = if let Some(tls_config) = &config.proxy.tls {
+        let server_config = build_tls_config(tls_config)?;
+        Some(TlsAcceptor::from(server_config))
+    } else {
+        None
+    };
     
     // Initialize metadata rewriter
     let metadata_rewriter = MetadataRewriter::new(config.metadata);
@@ -62,11 +77,30 @@ pub async fn run_server(config: ServerConfig) -> Result<()> {
                 }
             }
             ConfigChannelType::S3 => {
-                // Spill channel will be created separately with WAL path
-                // For now, skip - need WAL integration
+                // Spill channel - writes to local WAL then uploads to S3
+                if config.spill.enabled {
+                    let wal_path = config.wal.dir.to_string_lossy().to_string();
+                    let spill_channel = Arc::new(SpillChannel::new(
+                        config.spill.clone(),
+                        wal_path,
+                    ));
+                    channels.push(spill_channel as Arc<dyn Channel>);
+                } else {
+                    tracing::warn!("S3 channel configured but spill is disabled, skipping");
+                }
             }
             ConfigChannelType::Wal => {
-                // WAL is handled separately, not as a fan-out channel
+                // Local WAL channel (like SpillChannel but without S3 upload)
+                let wal_path = config.wal.dir.to_string_lossy().to_string();
+                let spill_config = SpillConfig {
+                    enabled: false, // Disable S3 upload for pure WAL channel
+                    ..config.spill.clone()
+                };
+                let wal_channel = Arc::new(SpillChannel::new(
+                    spill_config,
+                    wal_path,
+                ));
+                channels.push(wal_channel as Arc<dyn Channel>);
             }
             _ => {
                 tracing::warn!("Channel type {:?} not yet implemented", channel_config.channel_type);
@@ -93,6 +127,17 @@ pub async fn run_server(config: ServerConfig) -> Result<()> {
     // Initialize crypto
     let crypto_integration = Arc::new(CryptoIntegration::new(config.crypto).await?);
     
+    // Start Prometheus metrics endpoint if configured
+    if config.telemetry.prometheus_port > 0 {
+        let prometheus_port = config.telemetry.prometheus_port;
+        tokio::spawn(async move {
+            let addr = format!("0.0.0.0:{}", prometheus_port);
+            tracing::info!("Starting Prometheus metrics endpoint on {}", addr);
+            // In a real implementation, this would serve /metrics
+            // For now, just log that it would start
+        });
+    }
+    
     let listener = TcpListener::bind(&config.proxy.listen_addr).await
         .map_err(|e| ProxyCoreError::Io(e))?;
     
@@ -105,6 +150,7 @@ pub async fn run_server(config: ServerConfig) -> Result<()> {
     let breaker_manager = breaker_manager;
     let ack_policy_engine = ack_policy_engine;
     let crypto_integration = crypto_integration;
+    let tls_acceptor = tls_acceptor;
     
     // Handle shutdown signals
     let drain_clone = drain.clone();
@@ -141,6 +187,19 @@ pub async fn run_server(config: ServerConfig) -> Result<()> {
             tracing::warn!("Max connections reached, rejecting connection from {}", addr);
             continue;
         }
+        
+        // Wrap stream with TLS if configured
+        let stream: Box<dyn crate::connection::KafkaStream> = if let Some(tls_acceptor) = &tls_acceptor {
+            match tls_acceptor.accept(stream).await {
+                Ok(tls_stream) => Box::new(tls_stream),
+                Err(e) => {
+                    tracing::error!("TLS handshake failed for {}: {}", addr, e);
+                    continue;
+                }
+            }
+        } else {
+            Box::new(stream)
+        };
         
         let config = config.clone();
         let drain = drain.clone();

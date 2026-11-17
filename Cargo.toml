@@ -26,6 +26,7 @@ rust-version = "1.80"
 
 [workspace.dependencies]
 tokio = { version = "1.40", features = ["full"] }
+tokio-rustls = "0.26"
 kafka-protocol = "0.18"
 rustls = "0.23"
 rustls-pemfile = "2.0"

@@ -8,6 +8,7 @@ rust-version = { workspace = true }
 [dependencies]
 tokio = { workspace = true }
 tokio-util = { workspace = true }
+tokio-rustls = { workspace = true }
 rustls = { workspace = true }
 rustls-pemfile = { workspace = true }
 bytes = { workspace = true }
