@@ -8,7 +8,7 @@ Oct 11, 2026 · @yury
 
 | Фаза | Название | Статус | Готовность |
 |------|----------|--------|------------|
-| 0 | Фундамент и тестовый харнесс | ✅ **Готово** | 90% |
+| 0 | Фундамент и тестовый харнесс | ✅ **Готово** | 100% |
 | 1 | Pass-through прокси | ✅ **Реализовано** | 95% |
 | 2 | Filter chain, WASM, event-ID | ✅ **Реализовано** | 90% |
 | 3 | Circuit breaker + ARC | ✅ **Реализовано** | 85% |
@@ -16,7 +16,7 @@ Oct 11, 2026 · @yury
 | 4 | Spill, replay, reconciler, chaos | 🔄 **Крейты готовы, нужна интеграция** | 50% |
 | 5 | Re-encryption, multi-region, нагрузка | 🔄 **Крейты готовы, нужна интеграция** | 30% |
 
-**Ключевой вывод:** Все 14 крейтов реализованы и компилируются. Тестовый фреймворк (kp-testkit) имеет 10 проходящих юнит-тестов. Основной пробел — интеграция компонентов в работающий end-to-end прокси и запуск интеграционных/chaos тестов (L5-L8). **Critical TODO #1-2 выполнены:** прокси запускается с полной конфигурацией, каналы (Kafka, S3/Spill, WAL), TLS, Prometheus stub подключены.
+**Ключевой вывод:** Все 14 крейтов реализованы и компилируются. Тестовый фреймворк (kp-testkit) имеет 10 проходящих юнит-тестов. Основной пробел — интеграция компонентов в работающий end-to-end прокси и запуск интеграционных/chaos тестов (L5-L8). **Critical TODO #1-3 выполнены:** прокси запускается с полной конфигурацией, каналы (Kafka, S3/Spill, WAL), TLS, Prometheus stub подключены, baseline benchmark выполнен.
 
 ---
 
@@ -36,8 +36,25 @@ Oct 11, 2026 · @yury
 - ✅ Prometheus metrics endpoint stub добавлен (config.telemetry.prometheus_port)
 - ⏳ Полноценный Prometheus /metrics endpoint (нужно подключить metrics-exporter-prometheus)
 
-### 3. Запустить baseline-бенчмарк (Фаза 0 гейт)
-Пока нет измерений p50/p99 без прокси — нельзя верифицировать бюджет задержки.
+### 3. ✅ Запустить baseline-бенчмарк (Фаза 0 гейт) — **ВЫПОЛНЕНО**
+**Результаты сохранены в `BASELINE_BENCHMARK.md`**
+
+**Ключевые метрики (1KB records, acks=all, после warmup):**
+- Throughput: 135K - 164K rec/s (132 - 160 MB/s)
+- p50 latency: 231 - 331 ms
+- p99 latency: 300 - 513 ms
+- p99.9 latency: 311 - 526 ms
+
+**Бюджет для прокси:**
+- p50 overhead: ≤ +1 ms (ideal), ≤ +5 ms (acceptable)
+- p99 overhead: ≤ +2 ms (ideal), ≤ +10 ms (acceptable)
+- Throughput degradation: ≤ 5%
+
+**Дополнительно протестировано:**
+- acks=1: похожий throughput, более предсказуемый tail
+- 100B records: p50=2ms, p99=59ms
+- 10KB records: p50=198ms, p99=1.7s (significant tail)
+- Consumer: 25K msg/s, 24.8 MB/s
 
 ### 4. Настроить docker-compose.test.yml для интеграционных тестов
 Сервисы: primary Kafka, secondary Kafka, MinIO, LocalStack (KMS/S3/DynamoDB), Toxiproxy, Fake ARC (5 endpoints), Prometheus, Grafana, Jaeger.
