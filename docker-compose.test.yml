@@ -140,6 +140,7 @@ services:
     volumes:
       - ./fake-arc/arc.conf:/etc/nginx/conf.d/arc.conf:ro
       - ./fake-arc/scenarios:/scenarios
+      - ./fake-arc/scenario.conf:/etc/nginx/conf.d/scenario.conf:ro
     networks:
       - kp-test-network
     command: >

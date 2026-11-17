@@ -1,0 +1,144 @@
+[proxy]
+listen_addr = "0.0.0.0:9092"
+max_connections = 10000
+connection_timeout = { secs = 30, nanos = 0 }
+request_timeout = { secs = 10, nanos = 0 }
+
+[proxy.backpressure]
+max_pending_requests = 1000
+max_request_size = 10485760
+enable = true
+
+[telemetry]
+service_name = "kp-proxy"
+prometheus_port = 9095
+log_level = "debug"
+log_format = "json"
+
+[metadata]
+routing_mode = "sni"
+rewrite_enabled = true
+broker_map = {}
+
+[filters]
+chain = [
+  { name = "enrichment", enabled = true, config = { headers = { "x-proxy-version" = "test", "x-proxy-region" = "local" } } },
+  { name = "filtering", enabled = false, config = {} },
+  { name = "event-id", enabled = true, config = {} }
+]
+per_topic = {}
+
+[wasm]
+enabled = false
+plugin_dir = "./plugins"
+abi_version = 1
+hot_reload = true
+
+[wasm.limits]
+max_memory_mb = 16
+max_cpu_time_ms = 10
+max_instructions = 1000000
+timeout = { secs = 0, nanos = 50000000 }
+
+[event_id]
+default_mode = "generate-uuidv7"
+per_topic = {}
+hmac_enabled = false
+hmac_key = ""
+
+[event_id.headers]
+event_id = true
+ingest_ts = true
+proxy_region = true
+proxy_id = true
+channel = true
+
+[breaker]
+composition = "any-open"
+per_broker = {}
+per_channel = {}
+
+[breaker.local]
+error_rate_threshold = 0.1
+latency_threshold = { secs = 0, nanos = 500000000 }
+timeout_threshold = { secs = 30, nanos = 0 }
+window_size = { secs = 10, nanos = 0 }
+min_requests = 10
+half_open_requests = 3
+half_open_interval = { secs = 10, nanos = 0 }
+
+[breaker.arc]
+enabled = true
+endpoints = [
+  "http://localhost:8080/health",
+  "http://localhost:8081/health",
+  "http://localhost:8082/health",
+  "http://localhost:8083/health",
+  "http://localhost:8084/health"
+]
+poll_interval = { secs = 5, nanos = 0 }
+cache_ttl = { secs = 30, nanos = 0 }
+fail_static = true
+
+[[channels]]
+name = "primary"
+channel_type = "kafka"
+ack_policy = "primary-sync-secondary-async"
+queue_size = 1000
+timeout = { secs = 10, nanos = 0 }
+kafka = { bootstrap_servers = "localhost:9092", client_id = "kp-proxy-test", producer_config = { "acks" = "all", "linger.ms" = "5", "batch.size" = "16384" }, topic_mapping = {} }
+
+[wal]
+dir = "./wal"
+segment_size = 67108864
+segment_max_age = { secs = 3600, nanos = 0 }
+fsync_policy = "group-commit"
+group_commit_interval = { secs = 0, nanos = 10000000 }
+max_segments = 1000
+
+[wal.recovery]
+truncate_corrupted = true
+verify_checksums = true
+
+[spill]
+enabled = true
+bucket = "kafka-spill"
+prefix = "spill/"
+endpoint = "http://localhost:9000"
+region = "us-east-1"
+credentials = { access_key_id = "minioadmin", secret_access_key = "minioadmin" }
+upload.multipart_threshold = 8388608
+upload.multipart_chunksize = 8388608
+upload.max_concurrent_uploads = 4
+upload.timeout = { secs = 60, nanos = 0 }
+manifest.enabled = true
+manifest.format = "json"
+retention.max_age = { secs = 604800, nanos = 0 }
+
+[reconciler]
+enabled = true
+interval = { secs = 60, nanos = 0 }
+window = { secs = 3600, nanos = 0 }
+checksum = true
+auto_replay = true
+max_replay_batch = 1000
+
+[crypto]
+enabled = false
+
+[crypto.kms]
+key_id = "alias/kp-proxy-test"
+region = "us-east-1"
+endpoint = "http://localhost:4566"
+cache_ttl = { secs = 300, nanos = 0 }
+
+[crypto.dek]
+algorithm = "aes256-gcm"
+rotation_interval = { secs = 86400, nanos = 0 }
+cache_size = 1000
+
+[crypto.headers]
+key_id = true
+iv = true
+tag = true
+algorithm = true
