@@ -16,6 +16,7 @@ members = [
     "crates/kp-reconciler",
     "crates/kp-crypto",
     "crates/kp-bin",
+    "crates/kp-chaos-runner",
 ]
 
 [workspace.package]
@@ -82,6 +83,8 @@ crc32fast = { version = "1.4", workspace = true }
 aws-sdk-kms = { version = "1.0", workspace = true }
 aes-gcm = { version = "0.10", workspace = true }
 chrono = { version = "0.4", features = ["serde"], workspace = true }
+bollard = { version = "0.20", features = ["http", "ssl", "default"] }
+reqwest = { version = "0.12", features = ["json"] }
 
 [workspace.lints.rust]
 unused_crate_dependencies = "warn"

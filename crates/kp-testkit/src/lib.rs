@@ -13,6 +13,8 @@ pub mod ledger;
 pub mod checker;
 pub mod scenario_runner;
 pub mod config;
+pub mod toxiproxy;
+pub mod docker_client;
 
 use thiserror::Error;
 

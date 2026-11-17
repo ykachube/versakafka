@@ -32,6 +32,8 @@ aws-sdk-s3 = { workspace = true }
 aws-config = { workspace = true }
 tokio-stream = { workspace = true }
 tokio-util = { workspace = true }
+reqwest = { workspace = true }
+bollard = { version = "0.16", features = ["ssl", "chrono", "default"] }
 
 [dev-dependencies]
 proptest = { workspace = true }
