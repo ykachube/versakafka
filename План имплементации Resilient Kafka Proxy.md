@@ -1,7 +1,7 @@
 # План имплементации Resilient Kafka Proxy
 
 Oct 11, 2026 · @yury  
-**Last Updated:** Nov 17, 2026  
+**Last Updated:** Nov 20, 2026  
 **Status:** Phase 0-3b complete; Phase 4 chaos testing infrastructure ready; Phase 5 pending
 
 ## 📊 Прогресс по фазам
@@ -17,6 +17,22 @@ Oct 11, 2026 · @yury
 | 5 | Re-encryption, multi-region, нагрузка | 🔄 **Крейты готовы, нужна интеграция** | 30% |
 
 **Ключевой вывод:** Все 15 крейтов реализованы и компилируются (добавлен kp-chaos-runner). Тестовый фреймворк (kp-testkit) имеет 10 проходящих юнит-тестов. **Critical TODO #1-4 выполнены:** прокси запускается с полной конфигурацией, все сервисы в docker-compose.test.yml работают, прокси проходит end-to-end тесты (produce/consume). **Chaos testing infrastructure added:** Toxiproxy client, Docker client, 10 scenarios, kp-chaos-runner binary. Ready for L8 chaos testing (30 scenarios defined).
+
+---
+
+## 🎯 Следующие приоритеты (Next Actions)
+
+| # | Задача | Усилия | Блокирует |
+|---|--------|--------|-----------|
+| 1 | **GitHub Actions CI Pipeline** | Medium | Real chaos testing (toxiproxy works natively in Linux) |
+| 2 | **Load Generator** в kp-testkit | Medium | Realistic traffic during chaos |
+| 3 | **Secondary Kafka Cluster** в docker-compose.test.yml | Low | Multi-channel failure scenarios |
+| 4 | **FS Failure Layer** (torn writes, disk full) | Medium | Chaos scenario coverage |
+| 5 | **JSON Scenario Runner** | Low | Connect test-scenarios/*.json |
+| 6 | **Prometheus /metrics endpoint** | Low | Production readiness |
+| 7 | **Run 30 Chaos Scenarios (L8)** | High | Main acceptance criteria |
+
+**Windows Toxiproxy workaround:** В Docker Desktop Windows toxiproxy API недоступен на host (bind к 127.0.0.1 в контейнере). Решение: запускать toxiproxy на хосте через `scripts/start-toxiproxy-host.bat` (Windows) или `scripts/start-toxiproxy-host.sh` (Linux/macOS). В Linux CI (GitHub Actions) работает нативно.
 
 ---
 
@@ -90,20 +106,7 @@ Oct 11, 2026 · @yury
 - Добавить secondary Kafka cluster в docker-compose.test.yml
 - Запустить 30 сценариев по плану (сейчас 10 готовых)
 
-### 5. Реализовать chaos-сценарии (L8) — **ИНФРАСТРУКТУРА ГОТОВА**
-**Статус:** Инфраструктура для chaos testing реализована:
-- ✅ Toxiproxy client в kp-testkit для network failure injection (latency, timeout, bandwidth, slow_close, reset, http_response)
-- ✅ Docker client в kp-testkit для container kill/restart (kafka, proxy, minio, localstack)
-- ✅ 10 built-in chaos scenarios в kp-testkit::scenario_runner::chaos_scenarios
-- ✅ kp-chaos-runner binary для запуска интеграционных сценариев
-- ✅ Интеграция с test-scenarios/*.json и toxiproxy-scenarios/*.json
-
-**Осталось для полного L8:**
-- Подключить JSON scenarios из test-scenarios/ к runner'у
-- Реализовать load_generator для реальной нагрузки
-- Реализовать fs_failures layer (torn writes, disk full)
-- Добавить secondary Kafka cluster в docker-compose.test.yml
-- Запустить 30 сценариев по плану (сейчас 10 готовых)
+**Windows Toxiproxy workaround:** В Docker Desktop Windows toxiproxy API недоступен на host (bind к 127.0.0.1 в контейнере). Решение: запускать toxiproxy на хосте через `scripts/start-toxiproxy-host.bat` (Windows) или `scripts/start-toxiproxy-host.sh` (Linux/macOS). В Linux CI (GitHub Actions) работает нативно.
 
 ## Цели и рамки v1
 
