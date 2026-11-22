@@ -41,7 +41,6 @@ futures-util = { workspace = true }
 kafka-protocol = { workspace = true }
 
 [dev-dependencies]
-kp-testkit = { path = "../kp-testkit" }
 proptest = { workspace = true }
 insta = { workspace = true }
 loom = { workspace = true }

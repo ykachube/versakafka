@@ -35,4 +35,4 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 
 [dev-dependencies]
-kp-testkit = { path = "../kp-testkit" }
+

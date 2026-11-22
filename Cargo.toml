@@ -1,7 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/kp-testkit",
     "crates/kp-protocol",
     "crates/kp-proxy-core",
     "crates/kp-metadata",
@@ -16,7 +15,6 @@ members = [
     "crates/kp-reconciler",
     "crates/kp-crypto",
     "crates/kp-bin",
-    "crates/kp-chaos-runner",
 ]
 
 [workspace.package]

@@ -28,6 +28,6 @@ dashmap = { workspace = true }
 rand = { workspace = true }
 
 [dev-dependencies]
-kp-testkit = { path = "../kp-testkit" }
+
 proptest = { workspace = true }
 insta = { workspace = true }

@@ -23,6 +23,6 @@ tokio = { workspace = true }
 async-trait = { workspace = true }
 
 [dev-dependencies]
-kp-testkit = { path = "../kp-testkit" }
+
 proptest = { workspace = true }
 insta = { workspace = true }
